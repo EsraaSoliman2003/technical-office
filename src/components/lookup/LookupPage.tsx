@@ -112,9 +112,17 @@ function LookupPageContent({ resource }: LookupPageProps) {
   const [deleting, setDeleting] = useState<LookupDto | null>(null);
   const [removeLookup, { isLoading: removing }] = useRemoveLookupMutation();
 
+  const deletingRef = useRef(false); // prevents a double delete (double click / Enter before re-render)
+
   const confirmDelete = async () => {
-    if (!deleting || removing) return;
-    const result = await removeLookup({ resource, id: deleting.id });
+    if (!deleting || deletingRef.current) return;
+    deletingRef.current = true;
+    let result;
+    try {
+      result = await removeLookup({ resource, id: deleting.id });
+    } finally {
+      deletingRef.current = false;
+    }
     setDeleting(null);
 
     if ("error" in result) {
