@@ -31,9 +31,9 @@ export default function TechnicalOfficeNavbar({
         <PanelLeft className="rotate-180" size={20} />
       </button>
 
-      <h1 className="text-center text-lg font-bold text-slate-800 md:text-xl">
+      {/* <h1 className="text-center text-lg font-bold text-slate-800 md:text-xl">
         إدارة الأشغال العسكرية
-      </h1>
+      </h1> */}
 
       <div className="flex items-center gap-3">
         {/* <button

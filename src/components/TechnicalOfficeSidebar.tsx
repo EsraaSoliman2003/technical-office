@@ -12,11 +12,14 @@ import {
   ClipboardCheck,
   ClipboardList,
   Database,
+  Factory,
+  FileText,
   FileCheck2,
   FileSignature,
   Home,
   LogOut,
   Mail,
+  Package,
   ReceiptText,
   Settings,
   Truck,
@@ -39,6 +42,24 @@ type TechnicalOfficeSidebarProps = {
 const navigationItems: SidebarItem[] = [
   { label: "الرئيسية", icon: Home, href: "/", active: true },
   { label: "الإشعارات", icon: Bell, href: "/notifications" },
+  {
+    label: "البيانات الأساسية",
+    icon: Database,
+    children: [
+      { label: "الجهات", icon: Building2, href: "/entities" },
+      { label: "القطاعات", icon: Briefcase, href: "/sectors" },
+      { label: "المشاريع", icon: ClipboardList, href: "/projects" },
+      { label: "انواع المشاريع", icon: FileText, href: "/project-types" },
+      { label: "الشركات", icon: Building2, href: "/companies" },
+      { label: "الخامات", icon: Package, href: "/materials" },
+      { label: "خامات الشركات", icon: Package, href: "/company-materials" },
+      { label: "خامات المشاريع", icon: Package, href: "/project-materials" },
+      { label: "المصانع", icon: Factory, href: "/factories" },
+      { label: "الخلاطات", icon: Boxes, href: "/mixers" },
+      { label: "شركات النقل", icon: Truck, href: "/transport-companies" },
+      { label: "تقرير العقود", icon: FileSignature, href: "/contract-report" },
+    ],
+  },
   {
     label: "منظومة الكتائب - الأولوية",
     icon: Building2,
@@ -187,7 +208,7 @@ export default function TechnicalOfficeSidebar({
     <aside
       id="technical-office-sidebar"
       aria-label="القائمة الجانبية"
-      className={`scrollbar-hide h-screen shrink-0 overflow-x-hidden overflow-y-auto bg-gradient-to-b from-[#0d2d55] via-[#103462] to-[#0c2647] shadow-2xl transition-[width] duration-300 ${isOpen ? "w-64 md:w-67" : "w-16 md:w-20"
+      className={`scrollbar-hide h-screen shrink-0 overflow-x-hidden overflow-y-auto bg-gradient-to-b from-[#0d2d55] via-[#103462] to-[#0c2647] shadow-2xl transition-[width] duration-300 ${isOpen ? "w-64 md:w-67" : "w-16 md:w-15"
         }`}
     >
       <div className="flex min-h-full w-full flex-col gap-3 py-4">
@@ -223,9 +244,9 @@ export default function TechnicalOfficeSidebar({
         <button
           aria-label="تسجيل الخروج"
           onClick={logout}
-          className={`group flex w-full items-center rounded-lg text-red-200/80 transition-colors hover:bg-red-400/10 hover:text-red-100 ${isOpen
-              ? "mx-2 gap-3 px-3 py-2.5 text-[14px]"
-              : "mx-2 justify-center px-0 py-2.5"
+          className={`group flex w-full items-center justify-center rounded-lg text-red-200/80 transition-colors hover:bg-red-400/10 hover:text-red-100 ${isOpen
+            ? "gap-3 px-3 py-2.5 text-[14px]"
+            : "justify-center px-0 py-2.5"
             }`}
         >
           <LogOut className="shrink-0" size={20} />
