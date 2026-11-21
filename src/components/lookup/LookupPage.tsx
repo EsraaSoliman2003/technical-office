@@ -92,6 +92,14 @@ function LookupPageContent({ resource }: LookupPageProps) {
   const totalCount = currentData?.totalCount ?? 0;
   const totalPages = currentData?.totalPages ?? 0;
 
+  // Page past the end (old bookmark, rows deleted here or by someone else) → last valid page.
+  // (With no rows at all, page 1 is the last valid page.)
+  const lastValidPage = Math.max(totalPages, 1);
+  const pageOutOfRange = currentData !== undefined && page > lastValidPage;
+  useEffect(() => {
+    if (pageOutOfRange) updateQuery({ page: lastValidPage });
+  }, [pageOutOfRange, lastValidPage, updateQuery]);
+
   const handleSort = (column: LookupSortBy) => {
     const nextDir: SortDir = column === sortBy ? (sortDir === "asc" ? "desc" : "asc") : column === "name" ? "asc" : "desc";
     updateQuery({ sortBy: column, sortDir: nextDir, page: null });
@@ -116,12 +124,12 @@ function LookupPageContent({ resource }: LookupPageProps) {
     }
 
     toast.success("تم الحذف بنجاح");
-    // The deleted row was the last one on this page → go back one page.
-    if (items.length === 1 && page > 1) updateQuery({ page: page - 1 });
+    // If this page is now empty, the out-of-range check above moves back a page.
   };
 
   // ---- Render ----
-  const showSkeleton = !currentData && isFetching;
+  // While redirecting from an out-of-range page, show the skeleton instead of "no data".
+  const showSkeleton = (!currentData && isFetching) || pageOutOfRange;
   const showError = !currentData && !isFetching && isError;
 
   let body;
