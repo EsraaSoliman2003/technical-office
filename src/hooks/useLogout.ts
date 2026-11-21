@@ -1,17 +1,20 @@
 "use client";
 
 import { useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { useAppDispatch } from "@/rtk/hooks";
 import { logout } from "@/rtk/slices/authSlice";
 
-/** Clears the session and the store, then goes to /login. */
+/**
+ * Clears the session and the store. `AuthGuard` then redirects to /login
+ * (with `?returnTo=` unless the user logged out on purpose).
+ */
 export const useLogout = () => {
-  const router = useRouter();
   const dispatch = useAppDispatch();
 
-  return useCallback(() => {
-    dispatch(logout());
-    router.replace("/login");
-  }, [dispatch, router]);
+  return useCallback(
+    ({ byUser = true }: { byUser?: boolean } = {}) => {
+      dispatch(logout({ byUser }));
+    },
+    [dispatch]
+  );
 };

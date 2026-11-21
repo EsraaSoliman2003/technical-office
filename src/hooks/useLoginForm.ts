@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useForm, type SubmitHandler, type UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { saveSession, type Session } from "@/lib/session";
@@ -27,7 +26,6 @@ interface UseLoginFormReturn extends Pick<UseFormReturn<LoginSchemaType>, "regis
 }
 
 export const useLoginForm = (): UseLoginFormReturn => {
-  const router = useRouter();
   const dispatch = useAppDispatch();
   const [login, { isLoading }] = useLoginMutation();
   const [requestError, setRequestError] = useState<string | null>(null);
@@ -74,7 +72,7 @@ export const useLoginForm = (): UseLoginFormReturn => {
     saveSession(session);
     dispatch(sessionStarted(session));
     toast.success("تم تسجيل الدخول بنجاح");
-    router.replace("/");
+    // GuestGuard now redirects to ?returnTo= (validated) or home.
   };
 
   return {

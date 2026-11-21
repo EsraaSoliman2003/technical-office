@@ -87,3 +87,15 @@ export function loadSession(): Session | null {
 export function getToken(): string | null {
   return loadSession()?.accessToken ?? null;
 }
+
+/**
+ * Calls back with the current session whenever another tab logs in or out
+ * (the `storage` event only fires in the other tabs).
+ */
+export function subscribeToSessionChanges(callback: (session: Session | null) => void): () => void {
+  const handleStorage = (event: StorageEvent) => {
+    if (event.key === STORAGE_KEY || event.key === null) callback(loadSession());
+  };
+  window.addEventListener("storage", handleStorage);
+  return () => window.removeEventListener("storage", handleStorage);
+}
