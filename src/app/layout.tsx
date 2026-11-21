@@ -3,6 +3,7 @@ import { Cairo } from "next/font/google";
 import "./globals.css";
 import MainProvider from "@/rtk/MainProvider";
 import { cookies } from "next/headers";
+import { Toaster } from "sonner";
 
 const cairo = Cairo({
   subsets: ["latin"],
@@ -33,6 +34,7 @@ export default async function RootLayout({
         <MainProvider token={token}>
           {children}
         </MainProvider>
+        <Toaster position="top-center" dir="rtl" />
       </body>
     </html>
   );

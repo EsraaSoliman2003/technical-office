@@ -5,14 +5,14 @@ export const confirmDelete = async (
     action: (id: number | string) => Promise<unknown>
 ) => {
     return toast.custom((toastId) => (
-        <div className="rounded-sm border border-gray-200 bg-white p-5 shadow-xl">
+        <div className="rounded-sm border border-gray-200 bg-white p-3 shadow-xl">
             {/* Message */}
             <p className="text-sm leading-6 font-medium text-gray-800">
-                Are you sure you want to delete this item?
+                هل أنت متأكد أنك تريد حذف هذا العنصر؟
             </p>
 
             {/* Actions */}
-            <div className="mt-5 flex items-center justify-end gap-2">
+            <div className="mt-3 flex items-center justify-end gap-2">
                 <button
                     type="button"
                     onClick={() => toast.dismiss(toastId)}
@@ -20,7 +20,7 @@ export const confirmDelete = async (
                         rounded-lg
                         border border-gray-200
                         bg-gray-50
-                        px-4 py-2
+                        px-2 py-1
                         text-sm font-medium text-gray-700
                         transition-all duration-200
                         hover:bg-gray-100
@@ -28,7 +28,7 @@ export const confirmDelete = async (
                         focus:ring-2 focus:ring-gray-200
                     "
                 >
-                    Cancel
+                    إلغاء
                 </button>
 
                 <button
@@ -46,7 +46,7 @@ export const confirmDelete = async (
                     className="
                         rounded-lg
                         bg-red-600
-                        px-4 py-2
+                        px-2 py-1
                         text-sm font-medium text-white
                         shadow-sm
                         transition-all duration-200
@@ -56,7 +56,7 @@ export const confirmDelete = async (
                         focus:ring-2 focus:ring-red-200
                     "
                 >
-                    Delete
+                    حذف
                 </button>
             </div>
         </div>
