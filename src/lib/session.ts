@@ -60,8 +60,11 @@ export function clearSession(): void {
   }
 }
 
-/** Reads the stored session. Returns null (and clears storage) when missing, malformed or expired. */
-export function loadSession(): Session | null {
+/**
+ * Reads the stored session. Returns null when missing, malformed or expired; in that case the
+ * entry is also removed unless `clearInvalid: false` (read-only, e.g. when reacting to another tab).
+ */
+export function loadSession({ clearInvalid = true }: { clearInvalid?: boolean } = {}): Session | null {
   if (!isBrowser()) return null;
 
   let raw: string | null = null;
@@ -80,8 +83,29 @@ export function loadSession(): Session | null {
   } catch {
     // malformed JSON
   }
-  clearSession();
+  if (clearInvalid) clearSession();
   return null;
+}
+
+/** The token currently in storage, without validating or modifying anything. */
+function readStoredToken(): string | null {
+  if (!isBrowser()) return null;
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const token = (JSON.parse(raw) as Partial<Session>)?.accessToken;
+    return typeof token === "string" ? token : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Removes the stored session only if it still holds `token`. Another tab may already have
+ * stored a newer session after the request with `token` was sent; that one must survive.
+ */
+export function clearSessionIfToken(token: string | null): void {
+  if (token && readStoredToken() === token) clearSession();
 }
 
 export function getToken(): string | null {
@@ -94,7 +118,8 @@ export function getToken(): string | null {
  */
 export function subscribeToSessionChanges(callback: (session: Session | null) => void): () => void {
   const handleStorage = (event: StorageEvent) => {
-    if (event.key === STORAGE_KEY || event.key === null) callback(loadSession());
+    // Read-only: reacting to another tab never writes to storage.
+    if (event.key === STORAGE_KEY || event.key === null) callback(loadSession({ clearInvalid: false }));
   };
   window.addEventListener("storage", handleStorage);
   return () => window.removeEventListener("storage", handleStorage);

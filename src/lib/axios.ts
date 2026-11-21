@@ -12,11 +12,18 @@ const instance = axios.create({
   },
 });
 
-type UnauthorizedHandler = () => void;
+/** Receives the token the rejected request was sent with (null if it had none). */
+type UnauthorizedHandler = (rejectedToken: string | null) => void;
 let unauthorizedHandler: UnauthorizedHandler | null = null;
 
+function bearerTokenOf(headers: unknown): string | null {
+  const value =
+    headers && typeof headers === "object" ? (headers as Record<string, unknown>)["Authorization"] : undefined;
+  return typeof value === "string" && value.startsWith("Bearer ") ? value.slice("Bearer ".length) : null;
+}
+
 /**
- * Registered by the auth layer (clears session + store and redirects to /login).
+ * Registered by the auth layer (ends the session; the guards redirect to /login).
  * A callback keeps this module free of a Redux store import (avoids an import cycle).
  */
 export function setUnauthorizedHandler(handler: UnauthorizedHandler | null) {
@@ -40,7 +47,7 @@ instance.interceptors.response.use(
     const url: string = error?.config?.url ?? "";
     const isLogin = url.replace(/^\/+/, "").startsWith(LOGIN_PATH);
     if (status === 401 && !isLogin) {
-      unauthorizedHandler?.();
+      unauthorizedHandler?.(bearerTokenOf(error?.config?.headers));
     }
     return Promise.reject(error);
   }

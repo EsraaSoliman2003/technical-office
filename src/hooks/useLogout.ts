@@ -4,17 +4,8 @@ import { useCallback } from "react";
 import { useAppDispatch } from "@/rtk/hooks";
 import { logout } from "@/rtk/slices/authSlice";
 
-/**
- * Clears the session and the store. `AuthGuard` then redirects to /login
- * (with `?returnTo=` unless the user logged out on purpose).
- */
+/** The user logs out: clears the session and the store; `AuthGuard` then redirects to /login. */
 export const useLogout = () => {
   const dispatch = useAppDispatch();
-
-  return useCallback(
-    ({ byUser = true }: { byUser?: boolean } = {}) => {
-      dispatch(logout({ byUser }));
-    },
-    [dispatch]
-  );
+  return useCallback(() => dispatch(logout()), [dispatch]);
 };

@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import { clearSession, type Session } from "@/lib/session";
+import { clearSession, clearSessionIfToken, loadSession, type Session } from "@/lib/session";
 import type { UserRole } from "@/types/auth";
 import { api } from "../api";
 import type { AppDispatch, RootState } from "../store";
@@ -78,29 +78,49 @@ const authSlice = createSlice({
 
 export const { sessionRestored, sessionStarted, profileUpdated, loggedOut } = authSlice.actions;
 
-/**
- * Logout = drop the token on the client (the API has no logout endpoint).
- * `byUser: false` for an expired/rejected token, so the next login returns to the current page.
- */
-export const logout =
-  ({ byUser }: { byUser: boolean }) =>
-  (dispatch: AppDispatch) => {
-    clearSession();
-    dispatch(loggedOut({ byUser }));
-    dispatch(api.util.resetApiState());
-  };
+/** Switch this tab to `session` (logged in elsewhere), dropping cached data of the previous user. */
+const adoptSession = (session: Session) => (dispatch: AppDispatch, getState: () => RootState) => {
+  if (getState().auth.token === session.accessToken) return;
+  dispatch(api.util.resetApiState());
+  dispatch(sessionStarted(session));
+};
 
-/** Another tab logged in (session) or out (null): mirror it here. Guards then redirect. */
-export const syncSessionFromOtherTab =
-  (session: Session | null) => (dispatch: AppDispatch, getState: () => RootState) => {
-    const { status, token } = getState().auth;
-    if (!session) {
-      if (status === "authenticated") dispatch(logout({ byUser: true }));
+/** Signed-out state for this tab only (storage is left alone). */
+const endSessionInThisTab = (byUser: boolean) => (dispatch: AppDispatch) => {
+  dispatch(loggedOut({ byUser }));
+  dispatch(api.util.resetApiState());
+};
+
+/** The user chose to log out: drop the token on the client (the API has no logout endpoint). */
+export const logout = () => (dispatch: AppDispatch) => {
+  clearSession();
+  dispatch(endSessionInThisTab(true));
+};
+
+/**
+ * The API rejected `rejectedToken` (401), or it expired. Storage is cleared only if it still
+ * holds that token; if another tab has stored a newer valid session meanwhile, switch to it.
+ * Otherwise sign out here, keeping `returnTo` (not a user logout).
+ */
+export const endRejectedSession =
+  (rejectedToken: string | null) => (dispatch: AppDispatch) => {
+    clearSessionIfToken(rejectedToken);
+    const stored = loadSession({ clearInvalid: false });
+    if (stored && stored.accessToken !== rejectedToken) {
+      dispatch(adoptSession(stored));
       return;
     }
-    if (session.accessToken === token) return;
-    dispatch(api.util.resetApiState()); // possibly a different user: drop cached data
-    dispatch(sessionStarted(session));
+    dispatch(endSessionInThisTab(false));
+  };
+
+/** Another tab logged in (session) or out (null): mirror it here without writing to storage. */
+export const syncSessionFromOtherTab =
+  (session: Session | null) => (dispatch: AppDispatch, getState: () => RootState) => {
+    if (session) {
+      dispatch(adoptSession(session));
+      return;
+    }
+    if (getState().auth.status === "authenticated") dispatch(endSessionInThisTab(true));
   };
 
 export default authSlice.reducer;
