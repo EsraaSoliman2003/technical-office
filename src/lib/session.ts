@@ -1,5 +1,5 @@
 import { jwtDecode } from "jwt-decode";
-import type { UserRole } from "@/utils/dtos";
+import type { UserRole } from "@/types/auth";
 
 /**
  * Client-only session storage. The token lives in localStorage, which works the

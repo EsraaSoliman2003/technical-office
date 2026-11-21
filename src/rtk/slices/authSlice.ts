@@ -1,6 +1,6 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import { clearSession, type Session } from "@/lib/session";
-import type { UserRole } from "@/utils/dtos";
+import type { UserRole } from "@/types/auth";
 import { api } from "../api";
 import type { AppDispatch } from "../store";
 

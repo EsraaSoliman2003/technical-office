@@ -1,4 +1,4 @@
-import type { LoginRequest, LoginResponse, MeResponse } from "@/utils/dtos";
+import type { LoginRequest, LoginResponse, MeResponse } from "@/types/auth";
 import { api } from "../api";
 
 export const authApi = api.injectEndpoints({
