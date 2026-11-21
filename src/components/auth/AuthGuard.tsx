@@ -10,7 +10,7 @@ import { profileUpdated } from "@/rtk/slices/authSlice";
 
 /**
  * Protects every page under `(all)`: no session → /login. Shows a loader until the session is known.
- * Unless the user logged out on purpose, /login gets `?returnTo=` so login comes back here.
+ * Unless the user logged out in this tab, /login gets `?returnTo=` so login comes back here.
  */
 export default function AuthGuard({ children }: { children: ReactNode }) {
   const router = useRouter();

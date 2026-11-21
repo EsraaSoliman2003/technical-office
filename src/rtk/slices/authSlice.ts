@@ -19,7 +19,7 @@ interface AuthState {
   role: UserRole | null;
   expiresAt: string | null;
   /**
-   * True when the user chose to log out (here or in another tab). Then /login opens without
+   * True when the user chose to log out in this tab. Then /login opens without
    * `returnTo`. Otherwise (no session, expired token, 401) the login returns to the current page.
    */
   loggedOutByUser: boolean;
@@ -113,14 +113,17 @@ export const endRejectedSession =
     dispatch(endSessionInThisTab(false));
   };
 
-/** Another tab logged in (session) or out (null): mirror it here without writing to storage. */
+/**
+ * Another tab logged in (session) or out (null): mirror it here without writing to storage.
+ * A logout from another tab is not this tab's user action, so `returnTo` is kept here.
+ */
 export const syncSessionFromOtherTab =
   (session: Session | null) => (dispatch: AppDispatch, getState: () => RootState) => {
     if (session) {
       dispatch(adoptSession(session));
       return;
     }
-    if (getState().auth.status === "authenticated") dispatch(endSessionInThisTab(true));
+    if (getState().auth.status === "authenticated") dispatch(endSessionInThisTab(false));
   };
 
 export default authSlice.reducer;
