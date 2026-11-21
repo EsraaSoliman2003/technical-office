@@ -3,24 +3,23 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Fragment } from "react";
-import { useBreadcrumbLabels } from "./BreadcrumbContext";
+import { LOOKUPS } from "@/lib/lookups";
 
-/** Arabic labels for route segments. Pages can also register their own via `useBreadcrumbLabel`. */
+/** Arabic labels for route segments (static, so there is no flicker). Lookup labels come from `LOOKUPS`. */
 const SEGMENT_LABELS: Record<string, string> = {
   data: "البيانات",
-  agencies: "الجهات",
-  sectors: "القطاعات",
+  ...Object.fromEntries(LOOKUPS.map((lookup) => [lookup.resource, lookup.title])),
 };
 
 type Crumb = { label: string; href: string };
 
-function buildCrumbs(pathname: string, pageLabels: Record<string, string>): Crumb[] {
+function buildCrumbs(pathname: string): Crumb[] {
   const segments = pathname.split("/").filter(Boolean);
   const crumbs: Crumb[] = [{ label: "الرئيسية", href: "/" }];
   let href = "";
   for (const segment of segments) {
     href += `/${segment}`;
-    const label = SEGMENT_LABELS[segment] ?? pageLabels[segment];
+    const label = SEGMENT_LABELS[segment];
     if (label) crumbs.push({ label, href: `${href}/` });
   }
   return crumbs;
@@ -29,8 +28,7 @@ function buildCrumbs(pathname: string, pageLabels: Record<string, string>): Crum
 /** Breadcrumb row for inner pages (hidden on the home page). */
 export default function Breadcrumbs() {
   const pathname = usePathname() ?? "/";
-  const pageLabels = useBreadcrumbLabels();
-  const crumbs = buildCrumbs(pathname, pageLabels);
+  const crumbs = buildCrumbs(pathname);
   if (crumbs.length < 2) return null;
 
   return (

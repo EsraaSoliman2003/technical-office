@@ -14,17 +14,19 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import ModuleCard from "@/components/ModuleCard";
+import { lookupHrefByTitle } from "@/lib/lookups";
 
 type DataItem = { title: string; icon: LucideIcon; href?: string };
 type DataSection = { title: string; items: DataItem[] };
 
-// Master-data lists from the old system's "البيانات" menu. Items without href are not built yet.
+// Master-data lists from the old system's "البيانات" menu.
+// A card is active when it has an `href`, or when a lookup with the same title is in `LOOKUPS`.
 const sections: DataSection[] = [
   {
     title: "الجهات والقطاعات",
     items: [
-      { title: "الجهات", icon: Landmark, href: "/data/agencies/" },
-      { title: "القطاعات", icon: Network, href: "/data/sectors/" },
+      { title: "الجهات", icon: Landmark },
+      { title: "القطاعات", icon: Network },
     ],
   },
   {
@@ -77,7 +79,7 @@ export default function DataHubPage() {
               <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
                 {section.items.map((item) => (
                   <li key={item.title}>
-                    <ModuleCard title={item.title} icon={item.icon} href={item.href} size="md" />
+                    <ModuleCard title={item.title} icon={item.icon} href={item.href ?? lookupHrefByTitle(item.title)} size="md" />
                   </li>
                 ))}
               </ul>

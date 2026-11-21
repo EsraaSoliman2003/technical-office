@@ -1,5 +1,5 @@
-/** API resource name of a name-only lookup, e.g. "agencies", "sectors". */
-export type LookupResource = string;
+/** API resource of a name-only lookup ("agencies" | "sectors" | …), derived from the `LOOKUPS` list. */
+export type { LookupResource } from "@/lib/lookups";
 
 export type LookupDto = {
   id: string;

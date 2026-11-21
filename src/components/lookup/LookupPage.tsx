@@ -5,9 +5,9 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AlertTriangle, Plus, Search, SearchX, X } from "lucide-react";
 import { toast } from "sonner";
 import Pagination from "@/components/Pagination";
-import { useBreadcrumbLabel } from "@/components/BreadcrumbContext";
 import { Button, ConfirmDialog, EmptyState, Input, Spinner } from "@/components/ui";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { getLookup } from "@/lib/lookups";
 import { useAppSelector } from "@/rtk/hooks";
 import { useListLookupsQuery, useRemoveLookupMutation } from "@/rtk/endpoints/lookupApi";
 import type { LookupDto, LookupResource, LookupSortBy, SortDir } from "@/types/lookup";
@@ -16,12 +16,8 @@ import LookupFormDialog from "./LookupFormDialog";
 import LookupTable from "./LookupTable";
 
 export type LookupPageProps = {
-  /** API resource, e.g. "agencies" → /api/agencies */
+  /** Lookup from `LOOKUPS`, e.g. "agencies" → /api/agencies (title and field label come from the list). */
   resource: LookupResource;
-  /** Page title, e.g. "الجهات" */
-  title: string;
-  /** Singular field label, e.g. "الجهة" */
-  fieldLabel: string;
 };
 
 const PAGE_SIZE = 20;
@@ -36,14 +32,13 @@ function parsePage(value: string | null) {
   return Number.isInteger(page) && page > 0 ? page : 1;
 }
 
-function LookupPageContent({ resource, title, fieldLabel }: LookupPageProps) {
+function LookupPageContent({ resource }: LookupPageProps) {
+  const { title, fieldLabel } = getLookup(resource);
   const router = useRouter();
   const pathname = usePathname() ?? "/";
   const searchParams = useSearchParams();
   const role = useAppSelector((state) => state.auth.role);
   const canWrite = role === "Admin" || role === "Manager";
-
-  useBreadcrumbLabel(pathname.split("/").filter(Boolean).pop(), title);
 
   // ---- URL state (?search=&page=&sortBy=&sortDir=) ----
   const urlSearch = searchParams.get("search") ?? "";
@@ -257,7 +252,7 @@ function LookupPageContent({ resource, title, fieldLabel }: LookupPageProps) {
 
 /**
  * Reusable screen for name-only lookups (list, search, sort, paginate, add, edit, delete).
- * A new lookup page is one line: `<LookupPage resource="..." title="..." fieldLabel="..." />`.
+ * A new lookup: add it to `LOOKUPS` (src/lib/lookups.ts) and add a route file with `<LookupPage resource="..." />`.
  */
 export default function LookupPage(props: LookupPageProps) {
   // useSearchParams needs a Suspense boundary in a static export.
