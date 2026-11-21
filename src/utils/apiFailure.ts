@@ -2,6 +2,7 @@ import { isAxiosError } from "axios";
 
 export const NETWORK_ERROR_MESSAGE = "تعذر الاتصال بالخادم";
 export const UNEXPECTED_ERROR_MESSAGE = "حدث خطأ غير متوقع";
+export const NO_PERMISSION_MESSAGE = "ليس لديك صلاحية لتنفيذ هذا الإجراء";
 
 export interface ApiFailure {
   /** `detail || title` from the ProblemDetails body (already in Arabic). */
@@ -60,6 +61,11 @@ export function getApiFailure(error: unknown): ApiFailure {
   }
 
   return { message: UNEXPECTED_ERROR_MESSAGE, fieldErrors: {}, networkError: false, status: null };
+}
+
+/** Narrows an RTK Query `error` (ApiFailure from our base query, or a SerializedError). */
+export function isApiFailure(error: unknown): error is ApiFailure {
+  return isRecord(error) && "fieldErrors" in error && "networkError" in error;
 }
 
 /** A single message for toasts / form-level alerts. */

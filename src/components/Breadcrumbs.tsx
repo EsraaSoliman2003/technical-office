@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Fragment } from "react";
+import { useBreadcrumbLabels } from "./BreadcrumbContext";
 
-/** Arabic labels for route segments. Add new pages here. */
+/** Arabic labels for route segments. Pages can also register their own via `useBreadcrumbLabel`. */
 const SEGMENT_LABELS: Record<string, string> = {
   data: "البيانات",
   agencies: "الجهات",
@@ -13,13 +14,13 @@ const SEGMENT_LABELS: Record<string, string> = {
 
 type Crumb = { label: string; href: string };
 
-function buildCrumbs(pathname: string): Crumb[] {
+function buildCrumbs(pathname: string, pageLabels: Record<string, string>): Crumb[] {
   const segments = pathname.split("/").filter(Boolean);
   const crumbs: Crumb[] = [{ label: "الرئيسية", href: "/" }];
   let href = "";
   for (const segment of segments) {
     href += `/${segment}`;
-    const label = SEGMENT_LABELS[segment];
+    const label = SEGMENT_LABELS[segment] ?? pageLabels[segment];
     if (label) crumbs.push({ label, href: `${href}/` });
   }
   return crumbs;
@@ -28,7 +29,8 @@ function buildCrumbs(pathname: string): Crumb[] {
 /** Breadcrumb row for inner pages (hidden on the home page). */
 export default function Breadcrumbs() {
   const pathname = usePathname() ?? "/";
-  const crumbs = buildCrumbs(pathname);
+  const pageLabels = useBreadcrumbLabels();
+  const crumbs = buildCrumbs(pathname, pageLabels);
   if (crumbs.length < 2) return null;
 
   return (
