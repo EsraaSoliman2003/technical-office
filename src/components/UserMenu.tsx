@@ -84,7 +84,16 @@ export default function UserMenu() {
   }, [open]);
 
   return (
-    <div ref={containerRef} className="relative">
+    <div
+      ref={containerRef}
+      className="relative"
+      onBlur={(event) => {
+        // Focus moved outside the menu (e.g. Tab). A null relatedTarget is ignored: outside
+        // clicks are handled by the pointerdown listener, and Safari does not focus clicked buttons.
+        const next = event.relatedTarget as Node | null;
+        if (next && !event.currentTarget.contains(next)) setOpen(false);
+      }}
+    >
       <button
         ref={triggerRef}
         type="button"
