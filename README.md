@@ -23,11 +23,16 @@ The app needs the backend's origin (without `/api`). There are two ways to set i
 | **`/config.json`** (runtime) | Desktop (Tauri) / any install where the URL differs per site | Put a `config.json` next to `index.html`. See `public/config.example.json`: `{ "apiUrl": "https://api.example.com" }` |
 | **`NEXT_PUBLIC_API_URL`** (build time) | Local dev, Vercel | Copy `.env.example` to `.env.local`, or set the variable in the hosting dashboard |
 
-At startup the app loads `/config.json` once, **before the first API call**. If the file is missing
-or has no `apiUrl`, it falls back to `NEXT_PUBLIC_API_URL`, then to `http://localhost:5133`.
+At startup the app loads `/config.json` **before the first API call** (5 s timeout). If the file is
+missing or has no `apiUrl`, it falls back to `NEXT_PUBLIC_API_URL`, then to `http://localhost:5133`.
+A failed request (network error, timeout, server error) is not cached: that call uses the fallback
+and the next API call tries `/config.json` again.
 
-- For local dev you can also create `public/config.json` (it is git-ignored, never commit it).
-- For an installed build, edit `out/config.json` (or the bundled copy) without rebuilding.
+- **Local dev:** use `.env.local` (`NEXT_PUBLIC_API_URL`). Do **not** create `public/config.json`:
+  everything in `public/` is copied into `out/`, so it would ship inside the build (e.g. the desktop
+  app). `npm run build` refuses to run while `public/config.json` exists (`scripts/check-public-config.mjs`).
+- **Installed build:** add `config.json` next to `index.html` **after** the build (e.g. `out/config.json`,
+  or the copy bundled into the desktop app). It can be changed without rebuilding.
 
 ## Development
 
