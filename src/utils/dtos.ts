@@ -1,51 +1,30 @@
 // ===========================
-// User
+// Auth (matches the .NET API contract)
 // ===========================
 
-export interface User {
-  id: number;
-  name: string;
-  email: string | null;
-  phone: string;
-  email_verified_at: string | null;
-  phone_verified_at: string | null;
-  created_at: string | null;
+export type UserRole = "Admin" | "Manager" | "Employee";
+
+export interface LoginRequest {
+  email: string;
+  password: string;
 }
 
-// ===========================
-// Auth Response
-// ===========================
-
-export interface RegisterResponse {
-  code: number;
-  message: string;
-  errors: string[];
-  data: {
-    user: User;
-  };
-}
-
+/** POST /api/auth/login */
 export interface LoginResponse {
-  code: number;
-  message: string;
-  errors: string[];
-  data: {
-    user: User;
-    token: string;
-  };
+  accessToken: string;
+  expiresAt: string;
+  userId: string;
+  fullName: string;
+  email: string;
+  role: UserRole;
 }
 
-// ===========================
-// Profile Response
-// ===========================
-
-export interface ProfileResponse {
-  code: number;
-  message: string;
-  errors: unknown[];
-  data: {
-    user: User;
-  };
+/** GET /api/auth/me */
+export interface MeResponse {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
 }
 
 export interface CategoriesResponse {
@@ -544,7 +523,7 @@ export interface NotificationData {
   order_id?: number;
   order_number?: string;
   status?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface Notification {

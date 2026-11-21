@@ -1,35 +1,13 @@
 import type { NextConfig } from "next";
 
+// Static export only (the app will be wrapped with Tauri later).
+// No Server Actions, API routes, middleware or server-only dynamic routes.
 const nextConfig: NextConfig = {
+  output: "export",
+  trailingSlash: true,
   images: {
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "admin.packadgek.com",
-        pathname: "/**",
-      },
-    ],
-  },
-  async headers() {
-    return [
-      {
-        source: "/api/:path*",
-        headers: [
-          {
-            key: "Access-Control-Allow-Origin",
-            value: process.env.NEXT_PUBLIC_API_URL || "*",
-          },
-          {
-            key: "Access-Control-Allow-Methods",
-            value: "GET,POST,PUT,PATCH,DELETE,OPTIONS",
-          },
-          {
-            key: "Access-Control-Allow-Headers",
-            value: "Content-Type, Authorization",
-          },
-        ],
-      },
-    ];
+    unoptimized: true,
   },
 };
+
 export default nextConfig;
