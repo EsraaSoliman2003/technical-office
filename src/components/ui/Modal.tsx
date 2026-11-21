@@ -20,6 +20,11 @@ type ModalProps = {
    * then the first focusable element. (Prefer these over React's `autoFocus`.)
    */
   initialFocusRef?: RefObject<HTMLElement | null>;
+  /**
+   * Where focus goes on close when the element that opened the modal no longer exists
+   * (e.g. a deleted row's button). Without it focus would fall back to <body>.
+   */
+  fallbackFocusRef?: RefObject<HTMLElement | null>;
   /** Close when clicking the backdrop (default true). */
   closeOnBackdrop?: boolean;
   /** Prevent closing (Esc, backdrop, X), e.g. while saving. */
@@ -42,6 +47,12 @@ function getFocusable(container: HTMLElement) {
   );
 }
 
+/** On close: back to the opener, or to the fallback when the opener was removed. Reads the ref at close time on purpose. */
+function restoreFocus(previouslyFocused: HTMLElement | null, fallbackFocusRef?: RefObject<HTMLElement | null>) {
+  if (previouslyFocused?.isConnected) previouslyFocused.focus();
+  else fallbackFocusRef?.current?.focus();
+}
+
 export function Modal({
   open,
   onClose,
@@ -51,6 +62,7 @@ export function Modal({
   footer,
   size = "md",
   initialFocusRef,
+  fallbackFocusRef,
   closeOnBackdrop = true,
   preventClose = false,
   className,
@@ -116,9 +128,9 @@ export function Modal({
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = previousOverflow;
-      previouslyFocused?.focus?.();
+      restoreFocus(previouslyFocused, fallbackFocusRef);
     };
-  }, [open, initialFocusRef]);
+  }, [open, initialFocusRef, fallbackFocusRef]);
 
   if (!open || typeof document === "undefined") return null;
 

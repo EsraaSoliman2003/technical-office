@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, type RefObject } from "react";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "./Button";
 import { Modal } from "./Modal";
@@ -15,6 +15,8 @@ type ConfirmDialogProps = {
   message?: string;
   confirmText?: string;
   cancelText?: string;
+  /** Focus target on close if the opening element is gone (see `Modal`). */
+  fallbackFocusRef?: RefObject<HTMLElement | null>;
 };
 
 /** Delete confirmation (Arabic defaults). Focus starts on "إلغاء" so Enter never deletes by accident. */
@@ -27,6 +29,7 @@ export function ConfirmDialog({
   message = "هل أنت متأكد من حذف هذا العنصر؟",
   confirmText = "حذف",
   cancelText = "إلغاء",
+  fallbackFocusRef,
 }: ConfirmDialogProps) {
   const cancelRef = useRef<HTMLButtonElement>(null);
 
@@ -37,6 +40,7 @@ export function ConfirmDialog({
       title={title}
       size="sm"
       initialFocusRef={cancelRef}
+      fallbackFocusRef={fallbackFocusRef}
       preventClose={loading}
       footer={
         <>
