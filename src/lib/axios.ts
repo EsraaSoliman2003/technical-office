@@ -1,13 +1,11 @@
 import axios from "axios";
+import { loadApiUrl } from "./config";
 import { getToken } from "./session";
-
-/** API origin, e.g. http://localhost:5133 (web) or a local-network IP (desktop). */
-export const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5133").replace(/\/+$/, "");
 
 const LOGIN_PATH = "auth/login";
 
+// baseURL is set per request once the runtime config is loaded (see the request interceptor).
 const instance = axios.create({
-  baseURL: `${API_URL}/api/`,
   headers: {
     Accept: "application/json",
     "Content-Type": "application/json",
@@ -25,7 +23,9 @@ export function setUnauthorizedHandler(handler: UnauthorizedHandler | null) {
   unauthorizedHandler = handler;
 }
 
-instance.interceptors.request.use((config) => {
+instance.interceptors.request.use(async (config) => {
+  // Waits for /config.json before the first API call (fetched only once).
+  config.baseURL = `${await loadApiUrl()}/api/`;
   const token = getToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;

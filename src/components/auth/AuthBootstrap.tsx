@@ -2,6 +2,7 @@
 
 import { useEffect, type ReactNode } from "react";
 import { setUnauthorizedHandler } from "@/lib/axios";
+import { loadApiUrl } from "@/lib/config";
 import { getTokenExpiry, loadSession } from "@/lib/session";
 import { useLogout } from "@/hooks/useLogout";
 import { useAppDispatch, useAppSelector } from "@/rtk/hooks";
@@ -23,6 +24,7 @@ export default function AuthBootstrap({ children }: { children: ReactNode }) {
   const expiresAt = useAppSelector((state) => state.auth.expiresAt);
 
   useEffect(() => {
+    void loadApiUrl(); // start loading /config.json early; API calls await it anyway
     dispatch(sessionRestored(loadSession()));
   }, [dispatch]);
 

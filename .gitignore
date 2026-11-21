@@ -42,3 +42,5 @@ yarn-error.log*
 next-env.d.ts
 
 certificates
+# runtime config (per install; see public/config.example.json)
+/public/config.json
