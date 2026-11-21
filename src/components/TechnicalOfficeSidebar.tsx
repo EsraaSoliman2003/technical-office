@@ -37,43 +37,43 @@ type TechnicalOfficeSidebarProps = {
 };
 
 const navigationItems: SidebarItem[] = [
-  { label: "الرئيسية", icon: Home, href: "/technical-office/", active: true },
-  { label: "الإشعارات", icon: Bell, href: "/technical-office/notifications" },
+  { label: "الرئيسية", icon: Home, href: "/", active: true },
+  { label: "الإشعارات", icon: Bell, href: "/notifications" },
   {
     label: "منظومة الكتائب - الأولوية",
     icon: Building2,
     children: [
-      { label: "الشركات", icon: Building2, href: "/technical-office/companies" },
-      { label: "المشاريع", icon: Briefcase, href: "/technical-office/projects" },
-      { label: "المقايسات", icon: ClipboardList, href: "/technical-office/quotations" },
-      { label: "العقود", icon: FileSignature, href: "/technical-office/contracts" },
-      { label: "طلبات التدبير", icon: ClipboardCheck, href: "/technical-office/procurement-requests" },
-      { label: "أوامر التوريد", icon: Truck, href: "/technical-office/supply-orders" },
-      { label: "المستخلصات", icon: ReceiptText, href: "/technical-office/statements" },
-      { label: "طلبات التصديق", icon: FileCheck2, href: "/technical-office/approval-requests" },
+      { label: "الشركات", icon: Building2, href: "/companies" },
+      { label: "المشاريع", icon: Briefcase, href: "/projects" },
+      { label: "المقايسات", icon: ClipboardList, href: "/quotations" },
+      { label: "العقود", icon: FileSignature, href: "/contracts" },
+      { label: "طلبات التدبير", icon: ClipboardCheck, href: "/procurement-requests" },
+      { label: "أوامر التوريد", icon: Truck, href: "/supply-orders" },
+      { label: "المستخلصات", icon: ReceiptText, href: "/statements" },
+      { label: "طلبات التصديق", icon: FileCheck2, href: "/approval-requests" },
       {
         label: "الخامات",
         icon: Boxes,
         children: [
-          { label: "التفاويض", icon: ClipboardCheck, href: "/technical-office/materials/delegations" },
-          { label: "تسكين على الشركات", icon: Building2, href: "/technical-office/materials/allocate-companies" },
-          { label: "تسكين على العقود", icon: FileSignature, href: "/technical-office/materials/allocate-contracts" },
-          { label: "تحويل داخلي", icon: ArrowLeftRight, href: "/technical-office/materials/internal-transfer" },
-          { label: "تحويل خارجي", icon: Truck, href: "/technical-office/materials/external-transfer" },
+          { label: "التفاويض", icon: ClipboardCheck, href: "/materials/delegations" },
+          { label: "تسكين على الشركات", icon: Building2, href: "/materials/allocate-companies" },
+          { label: "تسكين على العقود", icon: FileSignature, href: "/materials/allocate-contracts" },
+          { label: "تحويل داخلي", icon: ArrowLeftRight, href: "/materials/internal-transfer" },
+          { label: "تحويل خارجي", icon: Truck, href: "/materials/external-transfer" },
         ],
       },
       {
         label: "الخطابات",
         icon: Mail,
         children: [
-          { label: "مهامي والتنبيهات", icon: Bell, href: "/technical-office/letters/my-tasks" },
+          { label: "مهامي والتنبيهات", icon: Bell, href: "/letters/my-tasks" },
         ],
       },
     ],
   },
-  { label: "منظومة الإدارة", icon: Briefcase, href: "/technical-office/management" },
-  { label: "إدخال البيانات (الربط)", icon: Database, href: "/technical-office/data-entry" },
-  { label: "الإعدادات", icon: Settings, href: "/technical-office/settings" },
+  { label: "منظومة الإدارة", icon: Briefcase, href: "/management" },
+  { label: "إدخال البيانات (الربط)", icon: Database, href: "/data-entry" },
+  { label: "الإعدادات", icon: Settings, href: "/settings" },
 ];
 
 export default function TechnicalOfficeSidebar({
