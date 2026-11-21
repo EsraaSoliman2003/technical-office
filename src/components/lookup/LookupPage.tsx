@@ -118,6 +118,12 @@ function LookupPageContent({ resource }: LookupPageProps) {
   // ---- Add / edit ----
   const [dialog, setDialog] = useState<DialogState>(null);
 
+  /** After a create: clear search, page 1, default sort (createdAt desc) → the new row is on top. Edits keep the view. */
+  const showNewest = () => {
+    setSearchText("");
+    updateQuery({ search: null, page: null, sortBy: null, sortDir: null });
+  };
+
   // ---- Delete ----
   const [deleting, setDeleting] = useState<LookupDto | null>(null);
   const [removeLookup, { isLoading: removing }] = useRemoveLookupMutation();
@@ -284,6 +290,7 @@ function LookupPageContent({ resource }: LookupPageProps) {
           fieldLabel={fieldLabel}
           item={dialog.mode === "edit" ? dialog.item : undefined}
           onClose={() => setDialog(null)}
+          onCreated={showNewest}
         />
       )}
 

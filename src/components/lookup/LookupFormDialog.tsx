@@ -16,10 +16,12 @@ type LookupFormDialogProps = {
   /** Item to edit; omit to add a new one. */
   item?: LookupDto;
   onClose: () => void;
+  /** Called after a successful create (not after an edit). */
+  onCreated?: () => void;
 };
 
 /** Add/edit dialog with one name field. Save: button, Enter or F2. Esc closes. Mount it only while open. */
-export default function LookupFormDialog({ resource, fieldLabel, item, onClose }: LookupFormDialogProps) {
+export default function LookupFormDialog({ resource, fieldLabel, item, onClose, onCreated }: LookupFormDialogProps) {
   const formId = useId();
   const formRef = useRef<HTMLFormElement>(null);
   const savingRef = useRef(false);
@@ -59,6 +61,7 @@ export default function LookupFormDialog({ resource, fieldLabel, item, onClose }
 
       toast.success("تم الحفظ بنجاح");
       onClose();
+      if (!item) onCreated?.();
     } finally {
       savingRef.current = false;
     }
