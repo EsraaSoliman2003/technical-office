@@ -227,6 +227,7 @@ function LookupPageContent({ resource }: LookupPageProps) {
 
       <div
         ref={tableCardRef}
+        role="region"
         tabIndex={-1}
         aria-label={title}
         className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm"
