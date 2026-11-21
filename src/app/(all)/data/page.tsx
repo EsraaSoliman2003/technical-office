@@ -14,19 +14,29 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import ModuleCard from "@/components/ModuleCard";
-import { lookupHrefByTitle } from "@/lib/lookups";
+import { getLookup, lookupHref, type LookupResource } from "@/lib/lookups";
 
-type DataItem = { title: string; icon: LucideIcon; href?: string };
+/**
+ * A hub card is either a built lookup (`lookup`: title and link come from `LOOKUPS`)
+ * or a placeholder that is not built yet (`title` only, shown as "قريبًا").
+ */
+type DataItem = { lookup: LookupResource; icon: LucideIcon } | { title: string; icon: LucideIcon };
 type DataSection = { title: string; items: DataItem[] };
 
+function cardProps(item: DataItem) {
+  if ("lookup" in item) {
+    return { key: item.lookup, title: getLookup(item.lookup).title, href: lookupHref(item.lookup) };
+  }
+  return { key: item.title, title: item.title, href: undefined };
+}
+
 // Master-data lists from the old system's "البيانات" menu.
-// A card is active when it has an `href`, or when a lookup with the same title is in `LOOKUPS`.
 const sections: DataSection[] = [
   {
     title: "الجهات والقطاعات",
     items: [
-      { title: "الجهات", icon: Landmark },
-      { title: "القطاعات", icon: Network },
+      { lookup: "agencies", icon: Landmark },
+      { lookup: "sectors", icon: Network },
     ],
   },
   {
@@ -77,11 +87,14 @@ export default function DataHubPage() {
                 {section.title}
               </h2>
               <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
-                {section.items.map((item) => (
-                  <li key={item.title}>
-                    <ModuleCard title={item.title} icon={item.icon} href={item.href ?? lookupHrefByTitle(item.title)} size="md" />
-                  </li>
-                ))}
+                {section.items.map((item) => {
+                  const { key, title, href } = cardProps(item);
+                  return (
+                    <li key={key}>
+                      <ModuleCard title={title} icon={item.icon} href={href} size="md" />
+                    </li>
+                  );
+                })}
               </ul>
             </section>
           );

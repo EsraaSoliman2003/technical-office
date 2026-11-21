@@ -86,8 +86,7 @@ The backend must expose the same endpoints at `/api/{resource}`.
    ```
 
    `resource` is both the API resource (`/api/project-types`) and the route (`/data/project-types`).
-   This also types the resource, sets the breadcrumb label, and activates the `/data` hub card whose
-   title equals `title`.
+   This also types the resource and sets the breadcrumb label.
 
 2. Add the route file `src/app/(all)/data/project-types/page.tsx`:
 
@@ -99,5 +98,10 @@ The backend must expose the same endpoints at `/api/{resource}`.
    }
    ```
 
-That's it. If the hub has no card with that title yet, add one to `sections` in
-`src/app/(all)/data/page.tsx`.
+3. Point its card in `sections` in `src/app/(all)/data/page.tsx` at the lookup (the title and link
+   then come from `LOOKUPS`; a mistyped resource fails the type check):
+
+   ```ts
+   { title: "انواع المشاريع", icon: Tags },        // before: "قريبًا" placeholder
+   { lookup: "project-types", icon: Tags },        // after: active link
+   ```
