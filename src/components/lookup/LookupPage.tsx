@@ -68,6 +68,16 @@ function LookupPageContent({ resource }: LookupPageProps) {
   const debouncedSearch = useDebouncedValue(searchText.trim(), 400);
   const lastDebounced = useRef(debouncedSearch);
 
+  // Follow ?search= when it changes from outside (back/forward, a link to this route).
+  // Our own updates set the URL to the debounced value, so those are skipped and typing
+  // that continued after the debounce is not overwritten. (State adjusted during render,
+  // not in an effect, so there is no extra render pass or loop.)
+  const [prevUrlSearch, setPrevUrlSearch] = useState(urlSearch);
+  if (urlSearch !== prevUrlSearch) {
+    setPrevUrlSearch(urlSearch);
+    if (urlSearch !== debouncedSearch) setSearchText(urlSearch);
+  }
+
   useEffect(() => {
     if (lastDebounced.current === debouncedSearch) return;
     lastDebounced.current = debouncedSearch;
