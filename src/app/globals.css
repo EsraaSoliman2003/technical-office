@@ -1,0 +1,266 @@
+@import url("https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap");
+@import "tailwindcss";
+
+/* ===========================================
+   Global Reset
+=========================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+.font-expo {
+  font-family: "Cairo", sans-serif;
+}
+
+section[id] {
+  scroll-margin-top: 100px;
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ===========================================
+   Typography
+=========================================== */
+
+button,
+input,
+textarea,
+select {
+  outline: none !important;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:not(:disabled) {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+a {
+  text-decoration: none;
+}
+
+/* ===========================================
+   Form Elements
+=========================================== */
+
+input,
+textarea,
+select {
+  outline: none;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+}
+
+/* ===========================================
+   Focus
+=========================================== */
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--main);
+  outline-offset: 2px;
+}
+
+/* ===========================================
+   Text Selection
+=========================================== */
+
+::selection {
+  background-color: var(--main);
+  color: var(--text-inside-main);
+}
+
+/* ===========================================
+   Smooth Interactive Elements
+=========================================== */
+
+button,
+a,
+input,
+textarea,
+select {
+  transition:
+    color var(--transition),
+    background-color var(--transition),
+    border-color var(--transition),
+    box-shadow var(--transition),
+    opacity var(--transition);
+}
+
+
+
+
+
+
+/* ===== Table Container ===== */
+.table-container {
+  @apply w-full overflow-x-auto overflow-y-hidden rounded-lg border border-slate-200 bg-white shadow-sm;
+}
+
+/* ===== Table ===== */
+.custom-table {
+  @apply w-full min-w-[1000px] border-collapse text-center;
+}
+
+/* ===== Table Header ===== */
+.custom-table thead {
+  @apply bg-[#103462] text-white;
+}
+
+.custom-table thead th {
+  @apply whitespace-nowrap border border-white/10 px-2 py-2 text-[11px] font-semibold;
+}
+
+/* Header Content */
+.table-header-content {
+  @apply flex items-center justify-center gap-1.5;
+}
+
+/* ===== Table Body ===== */
+.custom-table tbody td {
+  @apply border-b border-slate-100 px-3 py-3 text-xs text-slate-600;
+}
+
+/* Empty State */
+.table-empty {
+  @apply h-20 text-center text-xs text-slate-400;
+}
+
+/* ===== Table Footer ===== */
+.table-footer {
+  @apply flex items-center justify-between border-t border-slate-100 px-4 py-3 text-[10px] text-slate-400;
+}
+
+/* ===== Table Actions ===== */
+.table-actions {
+  @apply flex flex-wrap items-center gap-2;
+}
+
+.table-action-button {
+  @apply flex items-center gap-2 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-[11px] text-slate-600 transition hover:bg-slate-50;
+}
+
+/* ===== Table Search ===== */
+.table-search-container {
+  @apply flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 p-3;
+}
+
+.table-search-input {
+  @apply h-8 w-full rounded-md border border-slate-200 bg-white px-3 text-xs outline-none placeholder:text-slate-400 focus:border-[#103462];
+}
+
+.table-search-button {
+  @apply rounded-md bg-[#103462] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#17477f];
+}
+
+/* ===== Column Selector ===== */
+.table-columns-button {
+  @apply flex items-center gap-2 rounded-md border border-slate-300 px-3 py-1.5 text-xs text-slate-600 transition hover:bg-slate-50;
+}
+
+/* ===========================================
+   Container
+=========================================== */
+
+
+.container {
+  width: 100%;
+  max-width: 1320px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@media (max-width: 1399px) {
+  .container {
+    max-width: 1200px;
+  }
+}
+
+@media (max-width: 1279px) {
+  .container {
+    max-width: 1100px;
+  }
+}
+
+@media (max-width: 1199px) {
+  .container {
+    max-width: 1000px;
+  }
+}
+
+@media (max-width: 1099px) {
+  .container {
+    max-width: 950px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .container {
+    max-width: 900px;
+  }
+}
+
+@media (max-width: 991px) {
+  .container {
+    max-width: 850px;
+  }
+}
+
+@media (max-width: 899px) {
+  .container {
+    max-width: 700px;
+  }
+}
+
+@media (max-width: 767px) {
+  .container {
+    width: 100%;
+    padding-left: 15px;
+    padding-right: 15px;
+  }
+}
