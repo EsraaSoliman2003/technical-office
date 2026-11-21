@@ -1,1 +1,98 @@
-# technical-office
+# منظومة المكتب الفني — Technical Office (frontend)
+
+Frontend of the Technical Office System for a construction technical office. It replaces an old
+desktop system. The UI is **Arabic only (RTL)**.
+
+- **Next.js 16 + React 19**, Tailwind CSS 4, Redux Toolkit + **RTK Query**, react-hook-form + zod, axios.
+- **UI only.** All business logic, data and auth live in the separate ASP.NET Core API.
+- Built as a **static export** (`out/`), so it can later be wrapped as a desktop app with **Tauri**.
+  That means: no Server Actions, no API routes, no middleware, no server-only dynamic routes.
+  All data is fetched on the client.
+
+## Requirements
+
+- Node.js 20+ and npm
+- The backend API running (default dev URL `http://localhost:5133`)
+
+## Configuration: API URL
+
+The app needs the backend's origin (without `/api`). There are two ways to set it:
+
+| Option | When | How |
+| --- | --- | --- |
+| **`/config.json`** (runtime) | Desktop (Tauri) / any install where the URL differs per site | Put a `config.json` next to `index.html`. See `public/config.example.json`: `{ "apiUrl": "https://api.example.com" }` |
+| **`NEXT_PUBLIC_API_URL`** (build time) | Local dev, Vercel | Copy `.env.example` to `.env.local`, or set the variable in the hosting dashboard |
+
+At startup the app loads `/config.json` once, **before the first API call**. If the file is missing
+or has no `apiUrl`, it falls back to `NEXT_PUBLIC_API_URL`, then to `http://localhost:5133`.
+
+- For local dev you can also create `public/config.json` (it is git-ignored, never commit it).
+- For an installed build, edit `out/config.json` (or the bundled copy) without rebuilding.
+
+## Development
+
+```bash
+npm install
+cp .env.example .env.local   # NEXT_PUBLIC_API_URL=http://localhost:5133
+npm run dev                  # http://localhost:3000
+```
+
+Other scripts:
+
+```bash
+npm run lint    # ESLint (must pass with 0 errors / 0 warnings)
+npm run build   # static export to out/
+```
+
+## Build (static export)
+
+`npm run build` writes plain static files to **`out/`** (`output: 'export'`, `trailingSlash: true`,
+unoptimized images). Serve that folder with any static file server, or bundle it with Tauri.
+Add `out/config.json` to point the build at an API without rebuilding.
+
+## Deploy on Vercel
+
+1. Import the repository in Vercel (framework preset: Next.js).
+2. Set the environment variable **`NEXT_PUBLIC_API_URL`** to the API origin, e.g. `https://api.example.com`.
+3. Deploy. No `config.json` is needed; the env var is used as the fallback.
+
+The backend must allow the site's origin in its CORS settings.
+
+## Project structure (short)
+
+```
+src/
+  app/                 routes: (auth)/login, (all)/ (protected pages: home, /data, /data/<lookup>)
+  components/          shell, guards, module cards, lookup screen, ui/ (Button, Input, Modal, ...)
+  lib/                 axios, runtime config, session, theme, lookups list
+  rtk/                 store, base API (api.ts), endpoints/, slices/
+  types/               API types (auth, lookups, paged results)
+```
+
+## How to add a new lookup page
+
+Name-only lookups (like الجهات and القطاعات) share one screen (`src/components/lookup/LookupPage.tsx`).
+The backend must expose the same endpoints at `/api/{resource}`.
+
+1. Add an entry to `LOOKUPS` in `src/lib/lookups.ts`:
+
+   ```ts
+   { resource: "project-types", title: "انواع المشاريع", fieldLabel: "نوع المشروع" },
+   ```
+
+   `resource` is both the API resource (`/api/project-types`) and the route (`/data/project-types`).
+   This also types the resource, sets the breadcrumb label, and activates the `/data` hub card whose
+   title equals `title`.
+
+2. Add the route file `src/app/(all)/data/project-types/page.tsx`:
+
+   ```tsx
+   import LookupPage from "@/components/lookup/LookupPage";
+
+   export default function ProjectTypesPage() {
+     return <LookupPage resource="project-types" />;
+   }
+   ```
+
+That's it. If the hub has no card with that title yet, add one to `sections` in
+`src/app/(all)/data/page.tsx`.
