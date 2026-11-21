@@ -1,3 +1,4 @@
+import AuthGuard from "@/components/auth/AuthGuard";
 import TechnicalOfficeShell from "@/components/TechnicalOfficeShell";
 
 export default function TechnicalOfficeLayout({
@@ -6,8 +7,8 @@ export default function TechnicalOfficeLayout({
   children: React.ReactNode;
 }) {
   return (
-    <TechnicalOfficeShell>
-      {children}
-    </TechnicalOfficeShell>
+    <AuthGuard>
+      <TechnicalOfficeShell>{children}</TechnicalOfficeShell>
+    </AuthGuard>
   );
 }

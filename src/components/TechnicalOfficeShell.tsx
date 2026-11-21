@@ -1,29 +1,15 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
+import Breadcrumbs from "./Breadcrumbs";
 import TechnicalOfficeNavbar from "./TechnicalOfficeNavbar";
-import TechnicalOfficeSidebar from "./TechnicalOfficeSidebar";
 
-export default function TechnicalOfficeShell({
-  children,
-}: {
-  children: ReactNode;
-}) {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-
+export default function TechnicalOfficeShell({ children }: { children: ReactNode }) {
   return (
-    <div
-      className="flex h-screen overflow-hidden bg-[#f4f7fb] font-sans text-slate-800 font-expo"
-    >
-      <TechnicalOfficeSidebar isOpen={isSidebarOpen} />
-
-      <div className="flex min-w-0 flex-1 flex-col">
-        <TechnicalOfficeNavbar
-          isSidebarOpen={isSidebarOpen}
-          onToggleSidebar={() => setIsSidebarOpen((isOpen) => !isOpen)}
-        />
-        {children}
-      </div>
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
+      <TechnicalOfficeNavbar />
+      <Breadcrumbs />
+      <main className="flex-1">{children}</main>
     </div>
   );
 }

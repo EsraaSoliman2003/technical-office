@@ -1,58 +1,21 @@
 "use client";
 
-import { useLogout } from "@/hooks/useLogout";
-import {
-  Bell,
-  LogOut,
-  PanelLeft,
-} from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import UserMenu from "./UserMenu";
 
-type TechnicalOfficeNavbarProps = {
-  isSidebarOpen: boolean;
-  onToggleSidebar: () => void;
-};
-
-export default function TechnicalOfficeNavbar({
-  isSidebarOpen,
-  onToggleSidebar,
-}: TechnicalOfficeNavbarProps) {
-  const logout = useLogout();
-
+export default function TechnicalOfficeNavbar() {
   return (
-    <header className="z-10 flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 shadow-sm md:px-6">
-      <button
-        type="button"
-        aria-label={isSidebarOpen ? "إغلاق القائمة الجانبية" : "فتح القائمة الجانبية"}
-        aria-expanded={isSidebarOpen}
-        aria-controls="technical-office-sidebar"
-        onClick={onToggleSidebar}
-        className="rounded p-2 text-slate-500 transition hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#103462]"
-      >
-        <PanelLeft className="rotate-180" size={20} />
-      </button>
+    <header className="sticky top-0 z-30 border-b border-border bg-surface/90 backdrop-blur supports-[backdrop-filter]:bg-surface/75">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 md:px-6">
+        <Link href="/" className="flex min-w-0 items-center gap-3 rounded-lg">
+          <Image src="/logo.png" alt="" width={40} height={40} className="shrink-0 rounded-full" priority />
+          <span className="truncate text-base font-bold text-foreground sm:text-lg">منظومة المكتب الفني</span>
+        </Link>
 
-      <h1 className="text-center text-lg font-bold text-slate-800 md:text-xl">
-        إدارة الأشغال العسكرية
-      </h1>
-
-      <div className="flex items-center gap-3">
-        {/* <button
-          type="button"
-          aria-label="الإشعارات"
-          className="relative text-slate-500 transition hover:text-slate-800"
-        >
-          <Bell size={20} />
-          <span className="absolute right-0 top-0 h-2 w-2 rounded-full border border-white bg-red-500" />
-        </button> */}
-        <button
-          onClick={logout}
-          type="button"
-          aria-label="تسجيل الخروج"
-          className="flex h-9 w-9 items-center justify-center rounded-lg border border-red-600/30 bg-red-600/10 text-red-600 transition hover:border-red-500/60 hover:bg-red-600/20"
-        >
-          <LogOut className="rotate-180" size={16} />
-        </button>
+        <UserMenu />
       </div>
+      <div className="h-0.5 bg-gradient-to-l from-primary via-accent to-primary" aria-hidden="true" />
     </header>
   );
 }
