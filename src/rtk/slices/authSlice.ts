@@ -1,177 +1,78 @@
-import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import axios from "@/lib/axios";
-import { LoginResponse, RegisterResponse } from "@/utils/dtos";
-import { getApiFailure, parseApiFailure, type ApiFailure } from "@/utils/apiFailure";
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
+import { clearSession, type Session } from "@/lib/session";
+import type { UserRole } from "@/utils/dtos";
+import { api } from "../api";
+import type { AppDispatch } from "../store";
 
-// ===========================
-// State
-// ===========================
+/**
+ * - `loading`: the session has not been read from storage yet (first render / static HTML).
+ * - `authenticated` / `unauthenticated`: known.
+ */
+export type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 
 interface AuthState {
-  loading: boolean;
+  status: AuthStatus;
   token: string | null;
+  userId: string | null;
+  fullName: string | null;
+  email: string | null;
+  role: UserRole | null;
+  expiresAt: string | null;
 }
 
-const initialState: AuthState = {
-  loading: false,
+const signedOut: AuthState = {
+  status: "unauthenticated",
   token: null,
+  userId: null,
+  fullName: null,
+  email: null,
+  role: null,
+  expiresAt: null,
 };
 
-// ===========================
-// Register
-// ===========================
+const initialState: AuthState = { ...signedOut, status: "loading" };
 
-interface RegisterPayload {
-  name: string;
-  email: string;
-  phone: string;
-  password: string;
-  // platform: "Website"
+function fromSession(session: Session): AuthState {
+  return {
+    status: "authenticated",
+    token: session.accessToken,
+    userId: session.userId,
+    fullName: session.fullName,
+    email: session.email,
+    role: session.role,
+    expiresAt: session.expiresAt,
+  };
 }
-
-export const registerUser = createAsyncThunk<
-  RegisterResponse,
-  RegisterPayload,
-  { rejectValue: ApiFailure }
->("auth/register", async (data, { rejectWithValue }) => {
-  try {
-    const res = await axios.post("auth/register", data);
-    if (res.data?.success === false) {
-      return rejectWithValue(parseApiFailure(res.data));
-    }
-    return res.data;
-  } catch (error) {
-    return rejectWithValue(getApiFailure(error));
-  }
-});
-
-// ===========================
-// Login
-// ===========================
-
-interface LoginPayload {
-  login: string;
-  password: string;
-}
-
-export const loginUser = createAsyncThunk<
-  LoginResponse,
-  LoginPayload,
-  { rejectValue: ApiFailure }
->("auth/login", async (data, { rejectWithValue }) => {
-  try {
-    const res = await axios.post("auth/login", data);
-    if (res.data?.success === false) {
-      return rejectWithValue(parseApiFailure(res.data));
-    }
-    return res.data;
-  } catch (error) {
-    return rejectWithValue(getApiFailure(error));
-  }
-});
-
-// ===========================
-// Logout
-// ===========================
-
-export const logoutUser = createAsyncThunk<
-  void,
-  void,
-  { rejectValue: ApiFailure }
->(
-  "auth/logout",
-  async (_, { rejectWithValue }) => {
-    try {
-      const res = await axios.post("auth/logout");
-      if (res.data?.success === false) {
-        return rejectWithValue(parseApiFailure(res.data));
-      }
-    } catch (error) {
-      return rejectWithValue(getApiFailure(error));
-    }
-  }
-);
-
-// ===========================
-// Slice
-// ===========================
 
 const authSlice = createSlice({
   name: "auth",
   initialState,
-
   reducers: {
-    resetAuthState: () => initialState,
+    /** Called once on app load with the stored session (or null). */
+    sessionRestored: (_state, action: PayloadAction<Session | null>) =>
+      action.payload ? fromSession(action.payload) : signedOut,
 
-    initializeAuth: (
-      state,
-      action: PayloadAction<{
-        token: string | null;
-      }>
-    ) => {
-      state.token = action.payload.token;
+    /** Called after a successful login. */
+    sessionStarted: (_state, action: PayloadAction<Session>) => fromSession(action.payload),
+
+    /** Fresh user info from GET /auth/me. */
+    profileUpdated: (state, action: PayloadAction<{ fullName: string; email: string; role: UserRole }>) => {
+      state.fullName = action.payload.fullName;
+      state.email = action.payload.email;
+      state.role = action.payload.role;
     },
-  },
 
-  extraReducers: (builder) => {
-    builder
-
-      // ===========================
-      // REGISTER
-      // ===========================
-
-      .addCase(registerUser.pending, (state) => {
-        state.loading = true;
-      })
-
-      .addCase(registerUser.fulfilled, (state, action) => {
-        state.loading = false;
-      })
-
-      .addCase(registerUser.rejected, (state) => {
-        state.loading = false;
-      })
-
-      // ===========================
-      // LOGIN
-      // ===========================
-
-      .addCase(loginUser.pending, (state) => {
-        state.loading = true;
-      })
-
-      .addCase(loginUser.fulfilled, (state, action) => {
-        state.loading = false;
-        state.token = action.payload.data.token;
-      })
-
-      .addCase(loginUser.rejected, (state) => {
-        state.loading = false;
-      })
-
-      // ===========================
-      // LOGOUT
-      // ===========================
-
-      .addCase(logoutUser.pending, (state) => {
-        state.loading = true;
-      })
-
-      .addCase(logoutUser.fulfilled, (state) => {
-        state.loading = false;
-        state.token = null;
-      })
-
-      .addCase(logoutUser.rejected, (state) => {
-        state.loading = false;
-        state.token = null;
-      });
+    loggedOut: () => signedOut,
   },
 });
 
-export const {
-  resetAuthState,
-  initializeAuth,
-} = authSlice.actions;
+export const { sessionRestored, sessionStarted, profileUpdated, loggedOut } = authSlice.actions;
+
+/** Logout = drop the token on the client (the API has no logout endpoint). */
+export const logout = () => (dispatch: AppDispatch) => {
+  clearSession();
+  dispatch(loggedOut());
+  dispatch(api.util.resetApiState());
+};
 
 export default authSlice.reducer;

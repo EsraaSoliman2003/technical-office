@@ -1,39 +1,26 @@
 "use client";
 
-import {
-  SubmitHandler,
-  UseFormReturn,
-  useForm,
-} from "react-hook-form";
+import { useState } from "react";
+import { useForm, type SubmitHandler, type UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { useState } from "react";
-import { setCookie } from "cookies-next";
 
-import {
-  useAppDispatch,
-  useAppSelector,
-} from "@/rtk/hooks";
+import { saveSession, type Session } from "@/lib/session";
+import { useAppDispatch } from "@/rtk/hooks";
+import { useLoginMutation } from "@/rtk/endpoints/authApi";
+import { sessionStarted } from "@/rtk/slices/authSlice";
+import { getFailureMessage, UNEXPECTED_ERROR_MESSAGE, type ApiFailure } from "@/utils/apiFailure";
+import { getLoginSchema, type LoginSchemaType } from "@/validation/loginSchema";
 
-import { loginUser } from "@/rtk/slices/authSlice";
-import type { ApiFailure } from "@/utils/apiFailure";
+const FORM_FIELDS = ["email", "password"] as const;
+type FormField = (typeof FORM_FIELDS)[number];
 
-import {
-  getLoginSchema,
-  LoginSchemaType,
-} from "@/validation/loginSchema";
+function isFormField(key: string): key is FormField {
+  return (FORM_FIELDS as readonly string[]).includes(key);
+}
 
-interface UseLoginFormReturn
-  extends Pick<
-    UseFormReturn<LoginSchemaType>,
-    | "register"
-    | "handleSubmit"
-    | "control"
-    | "formState"
-    | "setValue"
-    | "trigger"
-  > {
+interface UseLoginFormReturn extends Pick<UseFormReturn<LoginSchemaType>, "register" | "handleSubmit" | "formState"> {
   onSubmit: SubmitHandler<LoginSchemaType>;
   loading: boolean;
   requestError: string | null;
@@ -42,89 +29,60 @@ interface UseLoginFormReturn
 export const useLoginForm = (): UseLoginFormReturn => {
   const router = useRouter();
   const dispatch = useAppDispatch();
-
-  const loading = useAppSelector(
-    (state) => state.auth.loading
-  );
+  const [login, { isLoading }] = useLoginMutation();
   const [requestError, setRequestError] = useState<string | null>(null);
 
-  const loginSchema = getLoginSchema();
-
   const form = useForm<LoginSchemaType>({
-    resolver: zodResolver(loginSchema),
-    mode: "onChange",
-    defaultValues: {
-      login: "",
-      password: "",
-    },
+    resolver: zodResolver(getLoginSchema()),
+    mode: "onTouched",
+    defaultValues: { email: "", password: "" },
   });
 
-  const onSubmit: SubmitHandler<LoginSchemaType> = async (
-    data
-  ) => {
+  const onSubmit: SubmitHandler<LoginSchemaType> = async (data) => {
     setRequestError(null);
     form.clearErrors();
-    try {
-      const resultAction = await dispatch(
-        loginUser({
-          login: data.login.trim(),
-          password: data.password,
-        })
-      );
 
-      if (loginUser.rejected.match(resultAction)) {
-        const failure: ApiFailure | undefined = resultAction.payload;
-        if (!failure) {
-          setRequestError("Unexpected error");
-          return;
-        }
+    const result = await login({ email: data.email, password: data.password });
 
-        const unassignedErrors: string[] = [];
-        Object.entries(failure.fieldErrors).forEach(([field, messages]) => {
-          const message = messages.join(" ");
-          if (field === "login" || field === "password") {
-            form.setError(field, { type: "server", message });
-          } else {
-            unassignedErrors.push(`${field}: ${message}`);
-          }
-        });
-
-        const globalMessage = failure.networkError
-          ? "Network error"
-          : [failure.message, ...unassignedErrors].filter(Boolean).join("\n");
-        setRequestError(
-          globalMessage ||
-            (Object.keys(failure.fieldErrors).length === 0
-              ? "Unexpected error"
-              : null)
-        );
+    if ("error" in result) {
+      const failure = result.error as ApiFailure | undefined;
+      if (!failure) {
+        setRequestError(UNEXPECTED_ERROR_MESSAGE);
         return;
       }
 
-      const { token } = resultAction.payload.data;
+      // Field errors go under their inputs (keys are camelCase, same as the form).
+      const otherErrors: string[] = [];
+      for (const [key, messages] of Object.entries(failure.fieldErrors)) {
+        if (isFormField(key)) {
+          form.setError(key, { type: "server", message: messages.join(" ") });
+        } else {
+          otherErrors.push(...messages);
+        }
+      }
 
-      setCookie("token", token, {
-        maxAge: 60 * 60 * 24 * 7,
-        path: "/",
-      });
-
-      toast.success("Logged in successfully");
-
-      router.replace("/");
-    } catch {
-      setRequestError("Unexpected error");
+      const hasFieldErrors = Object.keys(failure.fieldErrors).some(isFormField);
+      // For validation errors the title is generic; show it only if nothing went under a field.
+      const general = hasFieldErrors && failure.status === 400 ? otherErrors : [getFailureMessage(failure), ...otherErrors];
+      const message = [...new Set(general.filter(Boolean))].join("\n");
+      setRequestError(message || null);
+      return;
     }
+
+    const { accessToken, expiresAt, userId, fullName, email, role } = result.data;
+    const session: Session = { accessToken, expiresAt, userId, fullName, email, role };
+    saveSession(session);
+    dispatch(sessionStarted(session));
+    toast.success("تم تسجيل الدخول بنجاح");
+    router.replace("/");
   };
 
   return {
     register: form.register,
     handleSubmit: form.handleSubmit,
-    control: form.control,
     formState: form.formState,
-    setValue: form.setValue,
-    trigger: form.trigger,
     onSubmit,
-    loading,
+    loading: isLoading,
     requestError,
   };
 };
