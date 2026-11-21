@@ -1,77 +1,70 @@
 import { isAxiosError } from "axios";
 
+export const NETWORK_ERROR_MESSAGE = "تعذر الاتصال بالخادم";
+export const UNEXPECTED_ERROR_MESSAGE = "حدث خطأ غير متوقع";
+
 export interface ApiFailure {
+  /** `detail || title` from the ProblemDetails body (already in Arabic). */
   message: string;
+  /** ProblemDetails `errors`, keys as-is (camelCase). */
   fieldErrors: Record<string, string[]>;
+  /** True when the server could not be reached (no response). */
   networkError: boolean;
+  /** HTTP status, or null when there was no response. */
+  status: number | null;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function messagesFrom(value: unknown): string[] {
+function toMessages(value: unknown): string[] {
   if (typeof value === "string") return [value];
-  if (!Array.isArray(value)) return [];
-  return value.flatMap((item) =>
-    typeof item === "string" ? [item] : messagesFrom(item)
-  );
+  if (Array.isArray(value)) return value.filter((item): item is string => typeof item === "string");
+  return [];
 }
 
-export function parseApiFailure(data: unknown): ApiFailure {
-  if (!isRecord(data)) {
-    return { message: "", fieldErrors: {}, networkError: false };
+/** Parses an RFC 7807 ProblemDetails body. */
+export function parseProblemDetails(data: unknown, status: number | null = null): ApiFailure {
+  const failure: ApiFailure = { message: "", fieldErrors: {}, networkError: false, status };
+  if (!isRecord(data)) return failure;
+
+  const detail = typeof data.detail === "string" ? data.detail : "";
+  const title = typeof data.title === "string" ? data.title : "";
+  failure.message = detail || title;
+
+  if (failure.status === null && typeof data.status === "number") {
+    failure.status = data.status;
   }
 
-  const message = typeof data.message === "string" ? data.message : "";
-  const fieldErrors: Record<string, string[]> = {};
-  const errors = data.errors;
-
-  if (Array.isArray(errors)) {
-    errors.forEach((entry) => {
-      if (!isRecord(entry) || typeof entry.key !== "string") return;
-      const messages = messagesFrom(entry.value);
-      if (messages.length > 0) {
-        fieldErrors[entry.key] = [
-          ...(fieldErrors[entry.key] || []),
-          ...messages,
-        ];
-      }
-    });
-  } else if (isRecord(errors)) {
-    Object.entries(errors).forEach(([key, value]) => {
-      const messages = messagesFrom(value);
-      if (messages.length > 0) fieldErrors[key] = messages;
-    });
+  if (isRecord(data.errors)) {
+    for (const [key, value] of Object.entries(data.errors)) {
+      const messages = toMessages(value);
+      if (messages.length > 0) failure.fieldErrors[key] = messages;
+    }
   }
 
-  return { message, fieldErrors, networkError: false };
+  return failure;
 }
 
 export function getApiFailure(error: unknown): ApiFailure {
   if (isAxiosError(error)) {
     if (!error.response) {
-      return { message: "", fieldErrors: {}, networkError: true };
+      return { message: NETWORK_ERROR_MESSAGE, fieldErrors: {}, networkError: true, status: null };
     }
-
-    const failure = parseApiFailure(error.response.data);
-    if (failure.message || Object.keys(failure.fieldErrors).length > 0) {
-      return failure;
+    const failure = parseProblemDetails(error.response.data, error.response.status);
+    if (!failure.message && Object.keys(failure.fieldErrors).length === 0) {
+      failure.message = UNEXPECTED_ERROR_MESSAGE;
     }
-
-    return {
-      ...failure,
-      message: error.response.statusText || "",
-    };
+    return failure;
   }
 
-  if (error instanceof Error) {
-    return {
-      message: error.message,
-      fieldErrors: {},
-      networkError: false,
-    };
-  }
+  return { message: UNEXPECTED_ERROR_MESSAGE, fieldErrors: {}, networkError: false, status: null };
+}
 
-  return { message: "", fieldErrors: {}, networkError: false };
+/** A single message for toasts / form-level alerts. */
+export function getFailureMessage(failure: ApiFailure | null | undefined): string {
+  if (!failure) return UNEXPECTED_ERROR_MESSAGE;
+  if (failure.networkError) return NETWORK_ERROR_MESSAGE;
+  return failure.message || Object.values(failure.fieldErrors).flat()[0] || UNEXPECTED_ERROR_MESSAGE;
 }
