@@ -132,8 +132,25 @@ function LookupPageContent({ resource }: LookupPageProps) {
     }
 
     toast.success("تم الحذف بنجاح");
+    deletedIdRef.current = deleting.id;
     // If this page is now empty, the out-of-range check above moves back a page.
   };
+
+  // Focus target when the focused element disappears: the "إضافة" button, else the table card.
+  const addButtonRef = useRef<HTMLButtonElement>(null);
+  const tableCardRef = useRef<HTMLDivElement>(null);
+  const fallbackFocusRef = canWrite ? addButtonRef : tableCardRef;
+
+  // The dialog returns focus to the row's delete button, which is removed once the list refreshes.
+  // When that happens (focus fell to <body>), move focus to the fallback.
+  const deletedIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    const deletedId = deletedIdRef.current;
+    if (!deletedId || !currentData || currentData.items.some((item) => item.id === deletedId)) return;
+    deletedIdRef.current = null;
+    const active = document.activeElement;
+    if (!active || active === document.body) fallbackFocusRef.current?.focus();
+  }, [currentData, fallbackFocusRef]);
 
   // ---- Render ----
   // While redirecting from an out-of-range page, show the skeleton instead of "no data".
@@ -185,14 +202,19 @@ function LookupPageContent({ resource }: LookupPageProps) {
           {title}
         </h1>
         {canWrite && (
-          <Button onClick={() => setDialog({ mode: "create" })}>
+          <Button ref={addButtonRef} onClick={() => setDialog({ mode: "create" })}>
             <Plus size={18} aria-hidden="true" />
             إضافة
           </Button>
         )}
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+      <div
+        ref={tableCardRef}
+        tabIndex={-1}
+        aria-label={title}
+        className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm"
+      >
         <div className="border-b border-border p-4">
           <div className="relative max-w-md">
             <Search
@@ -261,6 +283,7 @@ function LookupPageContent({ resource }: LookupPageProps) {
         message={deleting ? `هل أنت متأكد من حذف "${deleting.name}"؟` : undefined}
         onConfirm={confirmDelete}
         onCancel={() => setDeleting(null)}
+        fallbackFocusRef={fallbackFocusRef}
       />
     </div>
   );
