@@ -3,10 +3,8 @@
 
 import {
   ArrowDown,
-  ArrowUpDown,
   Building2,
   FileSpreadsheet,
-  Filter,
   Printer,
   Search,
   Pencil,
@@ -16,16 +14,28 @@ import {
 
 import { useState, type FormEvent } from "react";
 import { confirmDelete } from "@/utils/confirmDelete";
+import DataTable, {
+  DataTableFilters,
+  type DataTableColumn,
+} from "@/components/DataTable";
+
+type EntityRow = {
+  id: number;
+  editTime: string;
+  lastEdit: string;
+  addTime: string;
+  enteredBy: string;
+  entity: string;
+};
 
 export default function Page() {
-  const columns = [
-    "توقيت التعديل",
-    "آخر تعديل",
-    "توقيت الإضافة",
-    "مدخل البيانات",
-    "الجهة",
-    "إجراءات",
-  ];
+  const columns: DataTableColumn<EntityRow>[] = [
+    { key: "editTime", label: "توقيت التعديل", width: "14%" },
+    { key: "lastEdit", label: "آخر تعديل", width: "14%" },
+    { key: "addTime", label: "توقيت الإضافة", width: "20%" },
+    { key: "enteredBy", label: "مدخل البيانات", width: "14%" },
+    { key: "entity", label: "الجهة", width: "calc(38% - 220px)" },
+  ] as const;
 
   const [data, setData] = useState([
     {
@@ -60,10 +70,25 @@ export default function Page() {
   >(null);
   const [isAddingEntity, setIsAddingEntity] = useState(false);
   const [editEntityName, setEditEntityName] = useState("");
+  const [columnFilters, setColumnFilters] =
+    useState<DataTableFilters<EntityRow>>({});
 
-  const filteredData = data.filter((item) =>
-    item.entity.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredData = data.filter((item) => {
+    const matchesSearch =
+      item.entity.toLowerCase().includes(search.trim().toLowerCase()) ||
+      item.enteredBy.toLowerCase().includes(search.trim().toLowerCase()) ||
+      item.lastEdit.toLowerCase().includes(search.trim().toLowerCase());
+
+    const matchesColumnFilters = columns.every(({ key }) => {
+      const selectedValues = columnFilters[key];
+      return (
+        !selectedValues?.length ||
+        selectedValues.includes(String(item[key]))
+      );
+    });
+
+    return matchesSearch && matchesColumnFilters;
+  });
 
   const handleDelete = (id: number) => {
     void confirmDelete(id, async (deleteId) => {
@@ -142,7 +167,6 @@ export default function Page() {
 
   return (
     <main
-      dir="rtl"
       className={`data-page${filteredData.length ? " data-page--has-rows" : ""
         }`}
     >
@@ -199,76 +223,42 @@ export default function Page() {
           </div>
         </div>
 
-        <div className="data-page__table-scroll">
-          <table className="data-page__table">
-            <thead>
-              <tr>
-                {columns.map((column) => (
-                  <th key={column}>
-                    <span className="data-page__column-label">
-                      {column}
-                      <ArrowUpDown size={11} />
-                      <Filter size={11} />
-                    </span>
-                  </th>
-                ))}
-              </tr>
-            </thead>
+        <DataTable<EntityRow>
+          columns={columns}
+          rows={filteredData}
+          sourceRows={data}
+          filters={columnFilters}
+          onFiltersChange={setColumnFilters}
+          actionsHeader="إجراءات"
+          actionsWidth={220}
+          emptyIcon={<Building2 size={24} />}
+          emptyText={
+            search
+              ? "لا توجد جهات مطابقة للبحث"
+              : "لا توجد جهات مضافة حتى الآن"
+          }
+          renderActions={(item) => (
+            <div className="flex items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => handleEdit(item)}
+                title="تعديل"
+                className="text-blue-600 hover:text-blue-800"
+              >
+                <Pencil size={15} />
+              </button>
 
-            <tbody>
-              {filteredData.length > 0 ? (
-                filteredData.map((item) => (
-                  <tr key={item.id}>
-                    <td>{item.editTime}</td>
-                    <td>{item.lastEdit}</td>
-                    <td>{item.addTime}</td>
-                    <td>{item.enteredBy}</td>
-                    <td>{item.entity}</td>
-
-                    <td>
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleEdit(item)}
-                          title="تعديل"
-                          className="text-blue-600 hover:text-blue-800"
-                        >
-                          <Pencil size={15} />
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(item.id)}
-                          title="حذف"
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td
-                    colSpan={columns.length}
-                    className="data-page__empty-cell"
-                  >
-                    <div className="data-page__empty">
-                      <span className="data-page__empty-icon">
-                        <Building2 size={24} />
-                      </span>
-
-                      <p className="data-page__empty-message">
-                        لا توجد جهات مطابقة للبحث
-                      </p>
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              <button
+                type="button"
+                onClick={() => handleDelete(item.id)}
+                title="حذف"
+                className="text-red-600 hover:text-red-800"
+              >
+                <Trash2 size={15} />
+              </button>
+            </div>
+          )}
+        />
 
         <footer className="data-page__footer">
           <span>عدد الجهات: {filteredData.length}</span>

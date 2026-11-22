@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
-  ArrowLeftRight,
-  Bell,
   Boxes,
   Briefcase,
   Building2,
@@ -14,14 +13,11 @@ import {
   Database,
   Factory,
   FileText,
-  FileCheck2,
   FileSignature,
   Home,
   LogOut,
-  Mail,
   Package,
   ReceiptText,
-  Settings,
   Truck,
   type LucideIcon,
 } from "lucide-react";
@@ -30,7 +26,6 @@ import { useLogout } from "@/hooks/useLogout";
 type SidebarItem = {
   label: string;
   icon: LucideIcon;
-  active?: boolean;
   href?: string;
   children?: SidebarItem[];
 };
@@ -40,68 +35,157 @@ type TechnicalOfficeSidebarProps = {
 };
 
 const navigationItems: SidebarItem[] = [
-  { label: "الرئيسية", icon: Home, href: "/", active: true },
-  { label: "الإشعارات", icon: Bell, href: "/notifications" },
+  {
+    label: "لوحة التحكم",
+    icon: Home,
+    href: "/",
+  },
+  {
+    label: "متابعة الأعمال",
+    icon: ClipboardList,
+    children: [
+      {
+        label: "المقايسات الجارية",
+        icon: ClipboardCheck,
+        href: "/quotations",
+      },
+      {
+        label: "العقود والارتباط",
+        icon: FileSignature,
+        href: "/contracts",
+      },
+      {
+        label: "المستخلصات الجارية",
+        icon: ReceiptText,
+        href: "/statements",
+      },
+      {
+        label: "الخامات المخصومة",
+        icon: Package,
+        href: "/materials/deducted",
+      },
+    ],
+  },
   {
     label: "البيانات الأساسية",
     icon: Database,
     children: [
-      { label: "الجهات", icon: Building2, href: "/entities" },
-      { label: "القطاعات", icon: Briefcase, href: "/sectors" },
-      { label: "المشاريع", icon: ClipboardList, href: "/projects" },
-      { label: "انواع المشاريع", icon: FileText, href: "/project-types" },
-      { label: "الشركات", icon: Building2, href: "/companies" },
-      { label: "الخامات", icon: Package, href: "/materials" },
-      { label: "خامات الشركات", icon: Package, href: "/company-materials" },
-      { label: "خامات المشاريع", icon: Package, href: "/project-materials" },
-      { label: "المصانع", icon: Factory, href: "/factories" },
-      { label: "الخلاطات", icon: Boxes, href: "/mixers" },
-      { label: "شركات النقل", icon: Truck, href: "/transport-companies" },
-      { label: "تقرير العقود", icon: FileSignature, href: "/contract-report" },
+      {
+        label: "القطاعات",
+        icon: Briefcase,
+        href: "/sectors",
+      },
+      {
+        label: "المشاريع",
+        icon: Building2,
+        href: "/projects",
+      },
+      {
+        label: "أنواع المشاريع",
+        icon: FileText,
+        href: "/project-types",
+      },
+      {
+        label: "الشركات",
+        icon: Building2,
+        href: "/companies",
+      },
+      {
+        label: "الجهات",
+        icon: Building2,
+        href: "/entities",
+      },
     ],
   },
   {
-    label: "منظومة الكتائب - الأولوية",
-    icon: Building2,
+    label: "إدارة الخامات",
+    icon: Boxes,
     children: [
-      { label: "الشركات", icon: Building2, href: "/companies" },
-      { label: "المشاريع", icon: Briefcase, href: "/projects" },
-      { label: "المقايسات", icon: ClipboardList, href: "/quotations" },
-      { label: "العقود", icon: FileSignature, href: "/contracts" },
-      { label: "طلبات التدبير", icon: ClipboardCheck, href: "/procurement-requests" },
-      { label: "أوامر التوريد", icon: Truck, href: "/supply-orders" },
-      { label: "المستخلصات", icon: ReceiptText, href: "/statements" },
-      { label: "طلبات التصديق", icon: FileCheck2, href: "/approval-requests" },
       {
         label: "الخامات",
-        icon: Boxes,
-        children: [
-          { label: "التفاويض", icon: ClipboardCheck, href: "/materials/delegations" },
-          { label: "تسكين على الشركات", icon: Building2, href: "/materials/allocate-companies" },
-          { label: "تسكين على العقود", icon: FileSignature, href: "/materials/allocate-contracts" },
-          { label: "تحويل داخلي", icon: ArrowLeftRight, href: "/materials/internal-transfer" },
-          { label: "تحويل خارجي", icon: Truck, href: "/materials/external-transfer" },
-        ],
+        icon: Package,
+        href: "/materials",
       },
       {
-        label: "الخطابات",
-        icon: Mail,
-        children: [
-          { label: "مهامي والتنبيهات", icon: Bell, href: "/letters/my-tasks" },
-        ],
+        label: "خامات الشركات",
+        icon: Package,
+        href: "/company-materials",
+      },
+      {
+        label: "خامات المشاريع",
+        icon: Package,
+        href: "/project-materials",
       },
     ],
   },
-  { label: "منظومة الإدارة", icon: Briefcase, href: "/management" },
-  { label: "إدخال البيانات (الربط)", icon: Database, href: "/data-entry" },
-  { label: "الإعدادات", icon: Settings, href: "/settings" },
+  {
+    label: "مرافق ومصادر التوريد",
+    icon: Factory,
+    children: [
+      {
+        label: "المصانع",
+        icon: Factory,
+        href: "/factories",
+      },
+      {
+        label: "الخلاطات",
+        icon: Boxes,
+        href: "/mixers",
+      },
+      {
+        label: "شركات النقل",
+        icon: Truck,
+        href: "/transport-companies",
+      },
+    ],
+  },
+  {
+    label: "التقارير",
+    icon: FileText,
+    children: [
+      {
+        label: "تقرير العقود",
+        icon: FileSignature,
+        href: "/contract-report",
+      },
+    ],
+  },
 ];
 
 export default function TechnicalOfficeSidebar({
   isOpen,
 }: TechnicalOfficeSidebarProps) {
   const logout = useLogout();
+  const pathname = usePathname();
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+
+  const isSameLink = (href?: string) => {
+    if (!href) return false;
+    if (href === "/") return pathname === "/";
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
+
+  const containsActiveLink = (items: SidebarItem[]): boolean =>
+    items.some((item) =>
+      isSameLink(item.href) ||
+      (item.children ? containsActiveLink(item.children) : false)
+    );
+
+  useEffect(() => {
+    const nextExpanded = new Set(expandedItems);
+
+    const expandActiveBranches = (items: SidebarItem[]) => {
+      items.forEach((item) => {
+        if (item.children?.length && containsActiveLink(item.children)) {
+          nextExpanded.add(item.label);
+          expandActiveBranches(item.children);
+        }
+      });
+    };
+
+    expandActiveBranches(navigationItems);
+    setExpandedItems(nextExpanded);
+  }, [pathname]);
 
   const toggleItem = (label: string) => {
     setExpandedItems((current) => {
@@ -114,9 +198,12 @@ export default function TechnicalOfficeSidebar({
 
   const renderItems = (items: SidebarItem[], level = 0) =>
     items.map((item) => {
-      const { label, icon: Icon, active, href, children } = item;
+      const { label, icon: Icon, href, children } = item;
       const hasChildren = Boolean(children && children.length > 0);
       const isExpanded = expandedItems.has(label);
+      const isActive = hasChildren
+        ? Boolean(children && containsActiveLink(children))
+        : isSameLink(href);
 
       const sizingClass = isOpen
         ? level === 0
@@ -126,7 +213,7 @@ export default function TechnicalOfficeSidebar({
             : "gap-2 px-2.5 py-1.5 text-[12.5px]"
         : "justify-center px-0 py-2.5";
 
-      const stateClass = active
+      const stateClass = isActive
         ? "bg-amber-300/15 text-white shadow-[inset_0_0_0_1px_rgba(251,191,36,0.15)]"
         : level === 0
           ? "text-blue-100/90 hover:bg-white/[0.06] hover:text-white"
@@ -138,7 +225,7 @@ export default function TechnicalOfficeSidebar({
 
       const content = (
         <>
-          {active && (
+          {isActive && (
             <span
               aria-hidden="true"
               className="absolute inset-y-1.5 start-0 w-1 rounded-full bg-amber-400"
@@ -147,7 +234,7 @@ export default function TechnicalOfficeSidebar({
 
           <Icon
             size={level === 0 ? 20 : level === 1 ? 18 : 16}
-            className={`shrink-0 ${active ? "text-amber-300" : ""}`}
+            className={`shrink-0 ${isActive ? "text-amber-300" : ""}`}
           />
 
           {isOpen && (
@@ -159,7 +246,7 @@ export default function TechnicalOfficeSidebar({
               aria-hidden="true"
               size={level === 0 ? 18 : 16}
               className={`ms-auto shrink-0 transition-transform duration-200 ${isExpanded ? "" : "rotate-90"
-                } ${isExpanded || active
+                } ${isExpanded || isActive
                   ? "text-amber-300"
                   : "text-blue-100/80 group-hover:text-white"
                 }`}
@@ -195,7 +282,7 @@ export default function TechnicalOfficeSidebar({
           <Link
             href={href ?? "#"}
             aria-label={label}
-            aria-current={active ? "page" : undefined}
+            aria-current={isActive ? "page" : undefined}
             className={sharedClassName}
           >
             {content}

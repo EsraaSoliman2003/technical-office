@@ -1,173 +1,412 @@
-"use client";
-
-import React from "react";
+import Link from "next/link";
 import {
+  ArrowUpLeft,
+  Banknote,
   Building2,
-  CalendarCheck,
-  Mail,
+  CheckCircle2,
+  ChevronLeft,
   ClipboardList,
-  FileSpreadsheet,
-  FileSignature,
+  Clock3,
+  FileCheck2,
+  FileText,
+  Landmark,
+  PackageCheck,
   ReceiptText,
-  Boxes,
-  Search,
-  Download,
+  Ruler,
 } from "lucide-react";
 
-const services = [
-  { title: "موقف المشاريع", icon: Building2 },
-  { title: "التمام اليومي", icon: CalendarCheck },
-  { title: "الجوابات", icon: Mail },
-  { title: "المحاضر", icon: ClipboardList },
-  { title: "البيانات", icon: FileSpreadsheet },
-  { title: "العقود", icon: FileSignature },
-  { title: "سلفة + مستخلص", icon: ReceiptText },
-  { title: "الخامات", icon: Boxes },
-];
+const summaryStats = [
+  {
+    title: "إجمالي المشروعات",
+    value: "128",
+    note: "مشروع مسجل",
+    icon: Building2,
+    tone: "blue",
+  },
+  {
+    title: "المقايسات الجارية",
+    value: "24",
+    note: "تحت الإعداد والمراجعة",
+    icon: Ruler,
+    tone: "violet",
+  },
+  {
+    title: "إجمالي العقود",
+    value: "86",
+    note: "عقد معتمد",
+    icon: FileCheck2,
+    tone: "emerald",
+  },
+  {
+    title: "مستخلصات قيد المتابعة",
+    value: "18",
+    note: "في مختلف مراحل الاعتماد",
+    icon: ReceiptText,
+    tone: "amber",
+  },
+] as const;
 
-const ServiceCard = ({
-  title,
-  icon: Icon,
-}: {
-  title: string;
-  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
-}) => (
-  <button
-    className="
-      group relative flex flex-col items-center justify-between gap-4
-      rounded-xl p-4 md:p-5
-      bg-white border border-slate-200
-      shadow-sm hover:shadow-md hover:border-blue-300
-      transition-all duration-300 hover:-translate-y-1
-      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500
-    "
-  >
-    <div
-      className="
-        w-16 h-16 md:w-20 md:h-20
-        rounded-full flex items-center justify-center
-        bg-blue-50 text-[#103462]
-        group-hover:bg-[#103462] group-hover:text-white
-        transition-colors duration-300
-      "
-    >
-      <Icon className="w-8 h-8 md:w-10 md:h-10" strokeWidth={1.5} />
-    </div>
+const financialStats = [
+  {
+    title: "إجمالي الارتباط",
+    value: "41.006",
+    unit: "مليار جنيه",
+    icon: Landmark,
+    color: "text-blue-700",
+    background: "bg-blue-50",
+  },
+  {
+    title: "إجمالي الصرف",
+    value: "20.856",
+    unit: "مليار جنيه",
+    icon: Banknote,
+    color: "text-emerald-700",
+    background: "bg-emerald-50",
+  },
+  {
+    title: "الخامات المخصومة",
+    value: "4.636",
+    unit: "مليار جنيه",
+    icon: PackageCheck,
+    color: "text-amber-700",
+    background: "bg-amber-50",
+  },
+] as const;
 
-    <span
-      className="
-        w-full text-center text-sm md:text-base font-bold text-slate-700
-        group-hover:text-[#103462] transition-colors
-      "
-    >
-      {title}
-    </span>
-  </button>
-);
+const recentStatements = [
+  {
+    number: "مخلص-2025-0148",
+    project: "تطوير شبكة الطرق الداخلية",
+    company: "النصر للمقاولات",
+    value: "1,250,000",
+    stage: "الإدارة",
+    status: "قيد المراجعة",
+    statusTone: "amber",
+  },
+  {
+    number: "مخلص-2025-0147",
+    project: "إنشاء مبنى الخدمات",
+    company: "المقاولون العرب",
+    value: "845,500",
+    stage: "الهيئة",
+    status: "جارٍ الاعتماد",
+    statusTone: "blue",
+  },
+  {
+    number: "مخلص-2025-0146",
+    project: "أعمال البنية التحتية",
+    company: "شركة التعمير",
+    value: "2,100,000",
+    stage: "الصرف",
+    status: "تم الصرف",
+    statusTone: "emerald",
+  },
+] as const;
+
+const statementStages = [
+  { name: "الكتيبة", count: 48 },
+  { name: "اللواء", count: 36 },
+  { name: "الإدارة", count: 27 },
+  { name: "الهيئة", count: 19 },
+  { name: "الفرع المالي", count: 12 },
+  { name: "الصرف", count: 8 },
+] as const;
+
+const statToneClasses = {
+  blue: {
+    icon: "bg-blue-50 text-blue-700",
+    value: "text-blue-950",
+  },
+  violet: {
+    icon: "bg-violet-50 text-violet-700",
+    value: "text-violet-950",
+  },
+  emerald: {
+    icon: "bg-emerald-50 text-emerald-700",
+    value: "text-emerald-950",
+  },
+  amber: {
+    icon: "bg-amber-50 text-amber-700",
+    value: "text-amber-950",
+  },
+} as const;
+
+const statusToneClasses = {
+  amber: "bg-amber-50 text-amber-700 ring-amber-600/15",
+  blue: "bg-blue-50 text-blue-700 ring-blue-600/15",
+  emerald: "bg-emerald-50 text-emerald-700 ring-emerald-600/15",
+} as const;
 
 export default function Page() {
   return (
-    <main className="flex-1 overflow-y-auto p-4 md:p-8">
-      <div className="mx-auto max-w-6xl space-y-6">
-            {/* Page Title */}
-            <div className="flex items-center gap-3">
-              <div className="w-1.5 h-6 bg-[#103462] rounded-full"></div>
-              <h2 className="text-xl md:text-2xl font-bold text-slate-800">
-                لوحة التحكم
+    <main
+      dir="rtl"
+      className="min-h-0 flex-1 overflow-y-auto bg-[#f5f7fb] px-4 py-6 md:px-7 md:py-8"
+    >
+      <div className="mx-auto max-w-[1440px] space-y-7">
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <nav
+              aria-label="مسار التنقل"
+              className="mb-3 flex items-center gap-1.5 text-xs text-slate-400"
+            >
+              <Link href="/" className="transition hover:text-[#103462]">
+                الرئيسية
+              </Link>
+              <ChevronLeft size={14} aria-hidden="true" />
+              <span className="font-semibold text-slate-600">لوحة التحكم</span>
+            </nav>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">
+              لوحة التحكم
+            </h1>
+            <p className="mt-1.5 text-sm text-slate-500 md:text-[15px]">
+              متابعة المقايسات والعقود والمستخلصات والخامات في مكان واحد.
+            </p>
+          </div>
+          <span className="inline-flex w-fit items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-500">
+            <span className="h-2 w-2 rounded-full bg-amber-400" />
+            بيانات تجريبية
+          </span>
+        </header>
+
+        <section aria-label="الإحصائيات الرئيسية">
+          <div className="mb-3 flex items-center gap-2">
+            <span className="h-5 w-1 rounded-full bg-[#103462]" />
+            <h2 className="text-base font-bold text-slate-800">
+              نظرة عامة على المنظومة
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {summaryStats.map(({ title, value, note, icon: Icon, tone }) => (
+              <article
+                key={title}
+                className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium text-slate-500">{title}</p>
+                    <p
+                      className={`mt-3 text-3xl font-bold tabular-nums ${statToneClasses[tone].value}`}
+                    >
+                      {value}
+                    </p>
+                  </div>
+                  <span
+                    className={`flex h-11 w-11 items-center justify-center rounded-xl ${statToneClasses[tone].icon}`}
+                  >
+                    <Icon size={21} strokeWidth={1.8} aria-hidden="true" />
+                  </span>
+                </div>
+                <p className="mt-3 text-xs text-slate-400">{note}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section aria-labelledby="financial-summary-title">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="h-5 w-1 rounded-full bg-[#103462]" />
+              <h2
+                id="financial-summary-title"
+                className="text-base font-bold text-slate-800"
+              >
+                ملخص الموقف المالي
               </h2>
             </div>
-
-            {/* Search Bar */}
-            <div className="relative max-w-2xl mx-auto my-6">
-              <input
-                type="text"
-                placeholder="بحث في وحدتك التنظيمية (عقود، مقايسات، شركات، مشاريع...)"
-                className="w-full bg-[#fffbea] border border-[#fde68a] text-slate-700 text-sm rounded-full py-3 px-5 pr-12 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition shadow-sm"
-              />
-              <Search
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
-                size={20}
-              />
-            </div>
-
-            {/* Tabs */}
-            <div className="flex flex-wrap justify-center gap-2 md:gap-4 mb-6">
-              {[
-                "الصفحة الرئيسية",
-                "الأولويات",
-                "بيان الصرف",
-                "متابعة المهام والمواقف",
-              ].map((tab, i) => (
-                <button
-                  key={i}
-                  className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all shadow-sm border ${i === 3
-                      ? "bg-[#103462] text-white border-[#103462]"
-                      : "bg-white text-[#103462] border-slate-200 hover:border-[#103462]"
-                    }`}
+            <span className="text-[11px] text-slate-400">
+              قيم مرجعية تجريبية
+            </span>
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            {financialStats.map(
+              ({ title, value, unit, icon: Icon, color, background }) => (
+                <article
+                  key={title}
+                  className="flex items-center gap-4 rounded-xl border border-slate-200/80 bg-white p-5 shadow-sm"
                 >
-                  {tab}
-                </button>
-              ))}
-            </div>
-
-            {/* Main Card Container */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 md:p-8">
-              {/* Card Header */}
-              <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8 pb-4 border-b border-slate-100">
-                <div className="flex items-center gap-2">
-                  <div className="w-1 h-5 bg-[#103462] rounded-full"></div>
-                  <h3 className="text-lg font-bold text-slate-800">
-                    متابعة المهام والمواقف
-                  </h3>
-                </div>
-
-                <div className="flex items-center gap-3 w-full md:w-auto">
-                  <div className="relative flex-1 md:w-64">
-                    <input
-                      type="text"
-                      placeholder="بحث..."
-                      className="w-full bg-slate-50 border border-slate-200 text-sm rounded-lg py-2 px-4 pr-10 focus:outline-none focus:border-[#103462]"
-                    />
-                    <Search
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
-                      size={16}
-                    />
+                  <span
+                    className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${background} ${color}`}
+                  >
+                    <Icon size={22} strokeWidth={1.8} aria-hidden="true" />
+                  </span>
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-medium text-slate-500">
+                      {title}
+                    </h3>
+                    <p className="mt-1 text-xl font-bold tabular-nums text-slate-900">
+                      {value}
+                      <span className="ms-1.5 text-xs font-medium text-slate-500">
+                        {unit}
+                      </span>
+                    </p>
                   </div>
-                  <button className="flex items-center gap-2 border border-slate-300 px-4 py-2 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 transition whitespace-nowrap">
-                    <Download size={16} />
-                    تصدير إكسل
-                  </button>
+                </article>
+              ),
+            )}
+          </div>
+        </section>
+
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.7fr)_minmax(320px,1fr)]">
+          <section
+            aria-labelledby="recent-statements-title"
+            className="min-w-0 overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-[#103462]">
+                  <FileText size={18} aria-hidden="true" />
+                </span>
+                <div>
+                  <h2
+                    id="recent-statements-title"
+                    className="text-sm font-bold text-slate-800"
+                  >
+                    آخر المستخلصات
+                  </h2>
+                  <p className="mt-0.5 text-[11px] text-slate-400">
+                    أحدث حركات المتابعة
+                  </p>
                 </div>
               </div>
+              <Link
+                href="/statements"
+                className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-semibold text-[#103462] transition hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#103462]"
+              >
+                عرض جميع المستخلصات
+                <ArrowUpLeft size={15} aria-hidden="true" />
+              </Link>
+            </div>
 
-              {/* ===== 8 Cards Layout (4 Right + 4 Left) ===== */}
-              <div className="flex flex-col md:flex-row md:justify-between gap-8">
-                {/* Right Group */}
-                <div className="grid grid-cols-2 gap-4 md:gap-6 md:w-[45%]">
-                  {services.slice(0, 4).map((service, i) => (
-                    <ServiceCard
-                      key={i}
-                      title={service.title}
-                      icon={service.icon}
-                    />
-                  ))}
-                </div>
+            {recentStatements.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[790px] text-right text-xs">
+                  <thead className="bg-slate-50 text-[11px] font-semibold text-slate-500">
+                    <tr>
+                      <th scope="col" className="px-4 py-3">رقم المستخلص</th>
+                      <th scope="col" className="px-4 py-3">المشروع</th>
+                      <th scope="col" className="px-4 py-3">الشركة</th>
+                      <th scope="col" className="px-4 py-3">القيمة</th>
+                      <th scope="col" className="px-4 py-3">المرحلة الحالية</th>
+                      <th scope="col" className="px-4 py-3">الموقف</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {recentStatements.map((statement) => (
+                      <tr
+                        key={statement.number}
+                        className="transition hover:bg-slate-50/80"
+                      >
+                        <td className="whitespace-nowrap px-4 py-3.5 font-semibold text-[#103462]">
+                          {statement.number}
+                        </td>
+                        <td className="max-w-48 truncate px-4 py-3.5 font-medium text-slate-700">
+                          {statement.project}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3.5 text-slate-500">
+                          {statement.company}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3.5 font-semibold tabular-nums text-slate-700">
+                          {statement.value} <span className="font-normal">ج.م</span>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3.5 text-slate-500">
+                          {statement.stage}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3.5">
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold ring-1 ring-inset ${statusToneClasses[statement.statusTone]}`}
+                          >
+                            {statement.statusTone === "emerald" ? (
+                              <CheckCircle2 size={12} aria-hidden="true" />
+                            ) : (
+                              <Clock3 size={12} aria-hidden="true" />
+                            )}
+                            {statement.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
+                <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                  <ClipboardList size={22} aria-hidden="true" />
+                </span>
+                <p className="text-sm font-semibold text-slate-600">
+                  لا توجد مستخلصات لعرضها
+                </p>
+                <p className="mt-1 text-xs text-slate-400">
+                  ستظهر المستخلصات هنا عند توفر البيانات.
+                </p>
+              </div>
+            )}
+          </section>
 
-                {/* Center Gap (فاضي على الشاشات الكبيرة) */}
-                <div className="hidden md:block w-px bg-slate-100"></div>
-
-                {/* Left Group */}
-                <div className="grid grid-cols-2 gap-4 md:gap-6 md:w-[45%]">
-                  {services.slice(4, 8).map((service, i) => (
-                    <ServiceCard
-                      key={i}
-                      title={service.title}
-                      icon={service.icon}
-                    />
-                  ))}
-                </div>
+          <section
+            aria-labelledby="stage-followup-title"
+            className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-sm"
+          >
+            <div className="mb-5 flex items-center gap-2.5">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-50 text-violet-700">
+                <ClipboardList size={18} aria-hidden="true" />
+              </span>
+              <div>
+                <h2
+                  id="stage-followup-title"
+                  className="text-sm font-bold text-slate-800"
+                >
+                  متابعة مراحل المستخلصات
+                </h2>
+                <p className="mt-0.5 text-[11px] text-slate-400">
+                  توزيع المستخلصات على مراحل الاعتماد
+                </p>
               </div>
             </div>
+            {statementStages.length > 0 ? (
+              <ol className="space-y-4">
+                {statementStages.map(({ name, count }, index) => (
+                  <li key={name}>
+                    <div className="mb-1.5 flex items-center justify-between text-xs">
+                      <span className="font-medium text-slate-600">
+                        <span className="me-2 text-[10px] text-slate-300">
+                          {String(index + 1).padStart(2, "0")}
+                        </span>
+                        {name}
+                      </span>
+                      <span className="font-bold tabular-nums text-slate-700">
+                        {count}
+                      </span>
+                    </div>
+                    <div
+                      className="h-1.5 overflow-hidden rounded-full bg-slate-100"
+                      role="progressbar"
+                      aria-label={`عدد المستخلصات في مرحلة ${name}`}
+                      aria-valuemin={0}
+                      aria-valuemax={statementStages[0].count}
+                      aria-valuenow={count}
+                    >
+                      <div
+                        className="h-full rounded-full bg-[#103462] transition-[width]"
+                        style={{
+                          width: `${(count / statementStages[0].count) * 100}%`,
+                        }}
+                      />
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="rounded-lg bg-slate-50 px-4 py-8 text-center text-xs text-slate-400">
+                لا توجد بيانات متاحة عن مراحل المستخلصات.
+              </p>
+            )}
+            <p className="mt-5 border-t border-slate-100 pt-3 text-[10px] text-slate-400">
+              أعداد توضيحية تجريبية قابلة للاستبدال ببيانات النظام.
+            </p>
+          </section>
+        </div>
       </div>
     </main>
   );
