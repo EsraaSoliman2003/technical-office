@@ -55,9 +55,9 @@ export default function Page() {
   ]);
 
   const [search, setSearch] = useState("");
-  const [editingItem, setEditingItem] = useState<(typeof data)[number] | null>(
-    null
-  );
+  const [editingItem, setEditingItem] = useState<
+    (typeof data)[number] | null
+  >(null);
   const [isAddingEntity, setIsAddingEntity] = useState(false);
   const [editEntityName, setEditEntityName] = useState("");
 
@@ -67,7 +67,9 @@ export default function Page() {
 
   const handleDelete = (id: number) => {
     void confirmDelete(id, async (deleteId) => {
-      setData((prev) => prev.filter((item) => item.id !== Number(deleteId)));
+      setData((prev) =>
+        prev.filter((item) => item.id !== Number(deleteId))
+      );
     });
   };
 
@@ -90,7 +92,9 @@ export default function Page() {
 
   const handleSaveEdit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
     const newEntity = editEntityName.trim();
+
     if ((!editingItem && !isAddingEntity) || !newEntity) return;
 
     if (editingItem) {
@@ -112,7 +116,11 @@ export default function Page() {
     } else {
       setData((prev) => [
         {
-          id: prev.reduce((maxId, item) => Math.max(maxId, item.id), 0) + 1,
+          id:
+            prev.reduce(
+              (maxId, item) => Math.max(maxId, item.id),
+              0
+            ) + 1,
           editTime: "—",
           lastEdit: "—",
           addTime: new Date().toLocaleString("ar-EG", {
@@ -135,35 +143,29 @@ export default function Page() {
   return (
     <main
       dir="rtl"
-      className={`data-page${filteredData.length ? " data-page--has-rows" : ""}`}
+      className={`data-page${filteredData.length ? " data-page--has-rows" : ""
+        }`}
     >
       <header className="data-page__heading">
-        <h1 className="data-page__title">الجهات</h1>
-        <p className="data-page__breadcrumb">Dashboard / الجهات</p>
-      </header>
+        <div>
+          <h1 className="data-page__title">الجهات</h1>
 
-      <div className="data-page__actions">
+          <p className="data-page__breadcrumb">
+            Dashboard / الجهات
+          </p>
+        </div>
+
         <button
           type="button"
-          onClick={() => window.print()}
-          className="data-page__action"
+          onClick={handleAdd}
+          className="data-page__add"
         >
-          <Printer size={13} />
-          طباعة الجدول
+          <span>إضافة جهة</span>
         </button>
-
-        <button type="button" disabled className="data-page__action">
-          <FileSpreadsheet size={13} />
-          تصدير إكسيل
-        </button>
-      </div>
+      </header>
 
       <section className="data-page__card">
         <div className="data-page__toolbar">
-          <button type="button" onClick={handleAdd} className="data-page__add">
-            إضافة جهة
-          </button>
-
           <label className="data-page__search">
             <input
               type="search"
@@ -172,8 +174,29 @@ export default function Page() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-            <Search size={14} />
+
+            <Search size={15} />
           </label>
+
+          <div className="data-page__actions">
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="data-page__action"
+            >
+              <Printer size={15} />
+              <span>طباعة الجدول</span>
+            </button>
+
+            <button
+              type="button"
+              disabled
+              className="data-page__action"
+            >
+              <FileSpreadsheet size={15} />
+              <span>تصدير إكسيل</span>
+            </button>
+          </div>
         </div>
 
         <div className="data-page__table-scroll">
@@ -184,8 +207,8 @@ export default function Page() {
                   <th key={column}>
                     <span className="data-page__column-label">
                       {column}
-                      <ArrowUpDown size={10} />
-                      <Filter size={10} />
+                      <ArrowUpDown size={11} />
+                      <Filter size={11} />
                     </span>
                   </th>
                 ))}
@@ -233,7 +256,7 @@ export default function Page() {
                   >
                     <div className="data-page__empty">
                       <span className="data-page__empty-icon">
-                        <Building2 size={22} />
+                        <Building2 size={24} />
                       </span>
 
                       <p className="data-page__empty-message">
@@ -251,7 +274,8 @@ export default function Page() {
           <span>عدد الجهات: {filteredData.length}</span>
 
           <span className="data-page__result-status">
-            <ArrowDown size={12} />
+            <ArrowDown size={13} />
+
             {filteredData.length > 0
               ? `عرض ${filteredData.length} جهات`
               : "لا توجد نتائج"}
@@ -263,7 +287,9 @@ export default function Page() {
         <div
           className="entity-edit__overlay"
           onMouseDown={(event) => {
-            if (event.target === event.currentTarget) closeEntityModal();
+            if (event.target === event.currentTarget) {
+              closeEntityModal();
+            }
           }}
         >
           <form
@@ -274,9 +300,13 @@ export default function Page() {
             role="dialog"
           >
             <header className="entity-edit__header">
-              <h2 id="entity-edit-title" className="entity-edit__title">
+              <h2
+                id="entity-edit-title"
+                className="entity-edit__title"
+              >
                 {editingItem ? "تعديل الجهة" : "إضافة جهة"}
               </h2>
+
               <button
                 type="button"
                 aria-label="إغلاق نافذة التعديل"
@@ -287,15 +317,21 @@ export default function Page() {
               </button>
             </header>
 
-            <label htmlFor="entity-name" className="entity-edit__label">
+            <label
+              htmlFor="entity-name"
+              className="entity-edit__label"
+            >
               اسم الجهة
             </label>
+
             <input
               autoFocus
               id="entity-name"
               className="entity-edit__input"
               value={editEntityName}
-              onChange={(event) => setEditEntityName(event.target.value)}
+              onChange={(event) =>
+                setEditEntityName(event.target.value)
+              }
               required
             />
 
@@ -307,7 +343,11 @@ export default function Page() {
               >
                 إلغاء
               </button>
-              <button type="submit" className="entity-edit__save">
+
+              <button
+                type="submit"
+                className="entity-edit__save"
+              >
                 {editingItem ? "حفظ التعديلات" : "إضافة الجهة"}
               </button>
             </footer>

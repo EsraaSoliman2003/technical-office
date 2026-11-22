@@ -233,6 +233,9 @@ select {
 
   .data-page__heading {
     margin-bottom: 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
 
   .data-page__title {
