@@ -26,7 +26,7 @@ export default function MaterialFormDialog({
 
   return (
     <div
-      className="entity-edit__overlay"
+      className="entity-edit__overlay entity-edit__overlay--form"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
@@ -34,7 +34,7 @@ export default function MaterialFormDialog({
       <form
         aria-labelledby="material-form-title"
         aria-modal="true"
-        className="entity-edit__dialog max-h-[90vh] w-full max-w-md overflow-y-auto"
+        className="entity-edit__dialog entity-edit__dialog--form entity-edit__dialog--form-compact"
         onSubmit={onSubmit}
         role="dialog"
       >

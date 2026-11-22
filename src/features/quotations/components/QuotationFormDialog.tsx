@@ -27,7 +27,7 @@ export default function QuotationFormDialog({
 
   return (
     <div
-      className="entity-edit__overlay"
+      className="entity-edit__overlay entity-edit__overlay--form"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
@@ -35,7 +35,7 @@ export default function QuotationFormDialog({
       <form
         aria-labelledby="quotation-form-title"
         aria-modal="true"
-        className="entity-edit__dialog max-h-[90vh] w-full max-w-3xl overflow-y-auto"
+        className="entity-edit__dialog entity-edit__dialog--form entity-edit__dialog--form-standard"
         onSubmit={onSubmit}
         role="dialog"
       >

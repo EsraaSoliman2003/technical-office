@@ -14,6 +14,38 @@
 html {
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
+  scrollbar-color: #b8c5d3 transparent;
+  scrollbar-width: thin;
+}
+
+* {
+  scrollbar-color: #b8c5d3 transparent;
+  scrollbar-width: thin;
+}
+
+*::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 9999px;
+  background: #c5d0dc;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #91a2b5;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 .font-expo {
@@ -51,6 +83,10 @@ input,
 textarea,
 select {
   outline: none !important;
+}
+
+input[type="date"] {
+  cursor: pointer;
 }
 
 button,
@@ -793,6 +829,12 @@ select {
     padding: 1rem;
   }
 
+  .entity-edit__overlay--form {
+    background: rgb(30 41 59 / 34%);
+    backdrop-filter: blur(1px);
+    padding: 0.75rem;
+  }
+
   .entity-edit__dialog {
     width: min(100%, 28rem);
     border: 1px solid #e2e8f0;
@@ -800,6 +842,98 @@ select {
     background: #fff;
     padding: 1.5rem;
     box-shadow: 0 24px 60px rgb(15 23 42 / 20%);
+  }
+
+  .entity-edit__dialog--form {
+    width: min(100%, 30rem);
+    max-height: 90vh;
+    overflow-y: auto;
+    border-color: #e8edf4;
+    border-radius: 0.875rem;
+    padding: 1rem;
+    box-shadow: 0 12px 32px rgb(15 23 42 / 12%);
+  }
+
+  .entity-edit__dialog--form-compact {
+    width: min(100%, 24rem);
+  }
+
+  .entity-edit__dialog--form-wide {
+    width: min(100%, 38rem);
+  }
+
+  .entity-edit__dialog--form .entity-edit__header {
+    margin-bottom: 1rem;
+  }
+
+  .entity-edit__dialog--form .entity-edit__title {
+    color: #334155;
+    font-size: 1rem;
+  }
+
+  .entity-edit__dialog--form .entity-edit__close {
+    width: 1.875rem;
+    height: 1.875rem;
+    border-radius: 0.625rem;
+    background: #f5f7fa;
+    color: #64748b;
+  }
+
+  .entity-edit__dialog--form .entity-edit__label {
+    margin-bottom: 0.375rem;
+    color: #475569;
+    font-size: 0.8rem;
+  }
+
+  .entity-edit__dialog--form .entity-edit__input {
+    border-color: #dce3eb;
+    border-radius: 0.55rem;
+    padding: 0.55rem 0.7rem;
+  }
+
+  .entity-edit__dialog--form .entity-edit__input:focus {
+    border-color: #7893b2;
+    box-shadow: 0 0 0 2px rgb(120 147 178 / 14%);
+  }
+
+  .entity-edit__dialog--form select.entity-edit__input {
+    appearance: none;
+    background-color: #fff;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='11' fill='%23f1f5f9'/%3E%3Cpath d='m8 10 4 4 4-4' fill='none' stroke='%2364758b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.8'/%3E%3C/svg%3E");
+    background-position: left 0.65rem center;
+    background-repeat: no-repeat;
+    background-size: 1.2rem;
+    cursor: pointer;
+    padding-left: 2.25rem;
+  }
+
+  .entity-edit__dialog--form select.entity-edit__input:hover {
+    border-color: #bdc9d8;
+  }
+
+  .entity-edit__dialog--form .entity-edit__actions {
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+
+  .entity-edit__dialog--form .entity-edit__cancel,
+  .entity-edit__dialog--form .entity-edit__save {
+    border-radius: 0.55rem;
+    padding: 0.5rem 0.85rem;
+    font-size: 0.8125rem;
+  }
+
+  .entity-edit__dialog--form .entity-edit__cancel {
+    background: #f4f6f9;
+    color: #64748b;
+  }
+
+  .entity-edit__dialog--form .entity-edit__save {
+    background: #426487;
+  }
+
+  .entity-edit__dialog--form .entity-edit__save:hover {
+    background: #365775;
   }
 
   .entity-edit__header {
@@ -886,6 +1020,10 @@ select {
 
     .data-page__search {
       max-width: none;
+    }
+
+    .entity-edit__dialog--form {
+      padding: 0.875rem;
     }
   }
 }

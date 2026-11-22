@@ -17,6 +17,7 @@ import DataTable, {
   type DataTableColumn,
   type DataTableFilters,
 } from "@/components/DataTable";
+import { openDatePicker } from "@/utils/openDatePicker";
 import { confirmDelete } from "@/utils/confirmDelete";
 
 type DeductionForm = {
@@ -507,6 +508,7 @@ export default function DeductedMaterialsPage() {
                   required
                   type="date"
                   className={formInputClass}
+                  onClick={(event) => openDatePicker(event.currentTarget)}
                   value={form.deductionDate}
                   onChange={(event) =>
                     updateFormField("deductionDate", event.target.value)

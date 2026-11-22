@@ -3,6 +3,7 @@
 import { X } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import ImageUploadField from "@/components/ImageUploadField";
+import { openDatePicker } from "@/utils/openDatePicker";
 import { projectStatuses } from "../constants";
 import type {
   Project,
@@ -79,7 +80,7 @@ export default function ProjectFormDialog({
 
   return (
     <div
-      className="entity-edit__overlay"
+      className="entity-edit__overlay entity-edit__overlay--form"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) closeForm();
       }}
@@ -87,7 +88,7 @@ export default function ProjectFormDialog({
       <form
         aria-labelledby="project-form-title"
         aria-modal="true"
-        className="entity-edit__dialog max-h-[90vh] w-full max-w-3xl overflow-y-auto"
+        className="entity-edit__dialog entity-edit__dialog--form entity-edit__dialog--form-standard"
         onSubmit={onSubmit}
         role="dialog"
       >
@@ -153,6 +154,11 @@ export default function ProjectFormDialog({
                   step={field.step}
                   type={field.type ?? "text"}
                   className={formInputClass}
+                  onClick={
+                    field.type === "date"
+                      ? (event) => openDatePicker(event.currentTarget)
+                      : undefined
+                  }
                   value={form[field.key]}
                   onChange={(event) =>
                     onFieldChange(field.key, event.target.value)
