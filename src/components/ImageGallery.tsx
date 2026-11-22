@@ -1,10 +1,10 @@
 "use client";
 
-import type { UploadedImage } from "@/types/UploadedImage";
+import type { UploadedFile } from "@/types/UploadedFile";
 
 type ImageGalleryProps = {
   title: string;
-  images: UploadedImage[];
+  images: UploadedFile[];
 };
 
 export default function ImageGallery({ title, images }: ImageGalleryProps) {

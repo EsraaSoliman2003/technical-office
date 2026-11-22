@@ -2,17 +2,18 @@
 
 import { ImagePlus, X } from "lucide-react";
 import { useState, type ChangeEvent } from "react";
-import type { UploadedImage } from "@/types/UploadedImage";
+import type { UploadedFile } from "@/types/UploadedFile";
 
 type ImageUploadFieldProps = {
   label: string;
-  images: UploadedImage[];
-  onAdd: (images: UploadedImage[]) => void;
+  images: UploadedFile[];
+  multiple?: boolean;
+  onAdd: (images: UploadedFile[]) => void;
   onRemove: (id: string) => void;
   onPendingChange: (isPending: boolean) => void;
 };
 
-const readImage = (file: File): Promise<UploadedImage> =>
+const readImage = (file: File): Promise<UploadedFile> =>
   new Promise((resolve, reject) => {
     const reader = new FileReader();
 
@@ -26,6 +27,7 @@ const readImage = (file: File): Promise<UploadedImage> =>
         id: `${file.name}-${file.lastModified}-${Math.random().toString(36).slice(2)}`,
         name: file.name,
         src: reader.result,
+        mimeType: file.type,
       });
     };
     reader.onerror = () => reject(new Error(`تعذر قراءة الصورة "${file.name}".`));
@@ -36,6 +38,7 @@ const readImage = (file: File): Promise<UploadedImage> =>
 export default function ImageUploadField({
   label,
   images,
+  multiple = true,
   onAdd,
   onRemove,
   onPendingChange,
@@ -75,11 +78,11 @@ export default function ImageUploadField({
       <label className="block">{label}</label>
       <label className="mt-1 flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 transition hover:border-[#103462] hover:bg-slate-50">
         <ImagePlus size={16} aria-hidden="true" />
-        <span>اختيار صور</span>
+        <span>{multiple ? "اختيار صور" : "اختيار صورة"}</span>
         <input
           type="file"
           accept="image/*"
-          multiple
+          multiple={multiple}
           disabled={isReading}
           className="sr-only"
           onChange={handleFilesChange}

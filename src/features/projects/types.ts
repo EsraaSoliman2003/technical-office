@@ -1,6 +1,6 @@
-import type { UploadedImage } from "@/types/UploadedImage";
+import type { UploadedFile } from "@/types/UploadedFile";
 
-export type ProjectImage = UploadedImage;
+export type ProjectImage = UploadedFile;
 
 export type ProjectForm = {
   name: string;

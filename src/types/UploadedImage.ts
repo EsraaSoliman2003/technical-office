@@ -1,5 +1,3 @@
-export type UploadedImage = {
-  id: string;
-  name: string;
-  src: string;
-};
+import type { UploadedFile } from "./UploadedFile";
+
+export type UploadedImage = UploadedFile;
