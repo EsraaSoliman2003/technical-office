@@ -52,7 +52,7 @@ const sections: DataSection[] = [
     title: "المشاريع",
     items: [
       { title: "المشاريع", icon: Briefcase, draft: "/data/projects/" },
-      { title: "انواع المشاريع", icon: Tags, draft: "/data/project-types/" },
+      { lookup: "project-types", icon: Tags },
     ],
   },
   {
