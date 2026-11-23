@@ -47,6 +47,9 @@ function getFocusable(container: HTMLElement) {
   );
 }
 
+/** Open modals, last = top-most. Only the top one handles Esc/Tab (a confirmation over a form dialog). */
+const openPanels: HTMLElement[] = [];
+
 /** On close: back to the opener, or to the fallback when the opener was removed. Reads the ref at close time on purpose. */
 function restoreFocus(previouslyFocused: HTMLElement | null, fallbackFocusRef?: RefObject<HTMLElement | null>) {
   if (previouslyFocused?.isConnected) previouslyFocused.focus();
@@ -98,7 +101,10 @@ export function Modal({
       target.focus();
     }
 
+    openPanels.push(panel);
+
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (openPanels[openPanels.length - 1] !== panel) return;
       if (event.key === "Escape") {
         event.stopPropagation();
         if (!preventCloseRef.current) onCloseRef.current();
@@ -126,6 +132,7 @@ export function Modal({
 
     document.addEventListener("keydown", handleKeyDown);
     return () => {
+      openPanels.splice(openPanels.indexOf(panel), 1);
       document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = previousOverflow;
       restoreFocus(previouslyFocused, fallbackFocusRef);
