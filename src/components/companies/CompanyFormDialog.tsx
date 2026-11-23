@@ -13,6 +13,8 @@ import {
   ATTACHMENT_MESSAGES,
   formatFileSize,
   MAX_ATTACHMENTS,
+  MAX_UPLOAD_TOTAL_BYTES,
+  UPLOAD_TOTAL_MESSAGE,
   validateAttachment,
 } from "@/lib/attachments";
 import { cn } from "@/lib/cn";
@@ -115,7 +117,9 @@ export default function CompanyFormDialog({ company, onClose, onCreated }: Compa
     const messages: string[] = [];
     const accepted: PendingFile[] = [];
     let available = MAX_ATTACHMENTS - existingCount - pending.length;
+    let totalBytes = pending.reduce((sum, { file }) => sum + file.size, 0);
     let overLimit = false;
+    let overTotal = false;
 
     for (const file of Array.from(fileList)) {
       const duplicate = [...pending, ...accepted].some(
@@ -128,12 +132,16 @@ export default function CompanyFormDialog({ company, onClose, onCreated }: Compa
         messages.push(`${file.name}: ${error}`);
       } else if (available <= 0) {
         overLimit = true;
+      } else if (totalBytes + file.size > MAX_UPLOAD_TOTAL_BYTES) {
+        overTotal = true;
       } else {
         accepted.push({ key: `file-${nextKeyRef.current++}`, file });
         available--;
+        totalBytes += file.size;
       }
     }
     if (overLimit) messages.push(ATTACHMENT_MESSAGES.count);
+    if (overTotal) messages.push(UPLOAD_TOTAL_MESSAGE);
 
     setPending((current) => [...current, ...accepted]);
     setFilesError(messages.length > 0 ? messages.join("\n") : null);

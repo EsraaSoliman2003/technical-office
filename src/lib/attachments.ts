@@ -4,6 +4,12 @@
  */
 export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 export const MAX_ATTACHMENTS = 10;
+/** Total size of the new files sent in one upload request. */
+export const MAX_UPLOAD_TOTAL_BYTES = 50 * 1024 * 1024;
+
+/** Client-side only (no server equivalent): the files of one upload request together. */
+export const UPLOAD_TOTAL_MESSAGE =
+  "الحجم الإجمالي للملفات الجديدة يجب ألا يزيد عن 50 ميجابايت في المرة الواحدة. احفظ أولًا ثم أضف باقي الملفات.";
 
 const ALLOWED_MIME_TYPES = [
   "application/pdf",
