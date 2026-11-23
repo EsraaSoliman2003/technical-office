@@ -1,12 +1,23 @@
 "use client";
 
-import { createContext, Suspense, useContext, useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import {
+  createContext,
+  Suspense,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from "react";
 import { AlertTriangle, Pencil, Plus, Search, SearchX, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import Pagination from "@/components/Pagination";
 import { Button, ConfirmDialog, EmptyState, Input, Spinner } from "@/components/ui";
 import type { PagedResult } from "@/types/paged";
 import { getFailureMessage, isApiFailure, NO_PERMISSION_MESSAGE } from "@/utils/apiFailure";
+import { useFocusAfterRemoval } from "./formHelpers";
 import ListTable, { type ListColumn, type RowAction } from "./ListTable";
 import type { ListState } from "./useListState";
 
@@ -103,7 +114,7 @@ export default function ListPage<T extends { id: string }, TSortBy extends strin
     }
 
     toast.success("تم الحذف بنجاح");
-    deletedIdRef.current = deleting.id;
+    markRemoved(deleting.id);
     // If this page is now empty, the out-of-range check above moves back a page.
   };
 
@@ -113,16 +124,9 @@ export default function ListPage<T extends { id: string }, TSortBy extends strin
   const showAdd = canWrite && onAdd !== undefined;
   const fallbackFocusRef = showAdd ? addButtonRef : tableCardRef;
 
-  // The dialog returns focus to the row's delete button, which is removed once the list refreshes.
-  // When that happens (focus fell to <body>), move focus to the fallback.
-  const deletedIdRef = useRef<string | null>(null);
-  useEffect(() => {
-    const deletedId = deletedIdRef.current;
-    if (!deletedId || !currentData || currentData.items.some((item) => item.id === deletedId)) return;
-    deletedIdRef.current = null;
-    const active = document.activeElement;
-    if (!active || active === document.body) fallbackFocusRef.current?.focus();
-  }, [currentData, fallbackFocusRef]);
+  // The confirmation returns focus to the row's delete button, which is removed once the list refreshes.
+  const currentIds = useMemo(() => currentData?.items.map((item) => item.id), [currentData]);
+  const markRemoved = useFocusAfterRemoval(currentIds, fallbackFocusRef);
 
   // ---- Row actions ----
   const actions: RowAction<T>[] = [];

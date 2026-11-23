@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, type RefObject } from "react";
 import { useAppSelector } from "@/rtk/hooks";
 import { getFailureMessage, type ApiFailure } from "@/utils/apiFailure";
 
@@ -25,6 +25,29 @@ export function useSaveShortcut(onSave: () => void) {
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
+}
+
+/**
+ * After deleting a row: a dialog returns focus to the row's delete button, which is removed once
+ * the data refreshes. When that happens (focus fell to <body>), focus `fallbackRef` instead.
+ * `currentIds` must be memoized. Returns `markRemoved(id)` to call after a successful delete.
+ */
+export function useFocusAfterRemoval(
+  currentIds: readonly string[] | undefined,
+  fallbackRef: RefObject<HTMLElement | null> | undefined
+) {
+  const removedIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    const removedId = removedIdRef.current;
+    if (!removedId || !currentIds || currentIds.includes(removedId)) return;
+    removedIdRef.current = null;
+    const active = document.activeElement;
+    if (!active || active === document.body) fallbackRef?.current?.focus();
+  }, [currentIds, fallbackRef]);
+
+  return useCallback((id: string) => {
+    removedIdRef.current = id;
   }, []);
 }
 
