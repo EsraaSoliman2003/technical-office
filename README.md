@@ -68,7 +68,10 @@ The backend must allow the site's origin in its CORS settings.
 ```
 src/
   app/                 routes: (auth)/login, (all)/ (protected pages: home, /data, /data/<lookup>)
-  components/          shell, guards, module cards, lookup screen, ui/ (Button, Input, Modal, ...)
+  components/          shell, guards, module cards, ui/ (Button, Input, Modal, ...)
+    list/              reusable list screen: URL list state, page shell, table with columns + row actions
+    lookup/            name-only lookup screen (built on list/)
+    companies/         الشركات screen with attachments (built on list/)
   lib/                 axios, runtime config, session, theme, lookups list
   rtk/                 store, base API (api.ts), endpoints/, slices/
   types/               API types (auth, lookups, paged results)
