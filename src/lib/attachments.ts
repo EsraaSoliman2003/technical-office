@@ -5,17 +5,18 @@
 export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 export const MAX_ATTACHMENTS = 10;
 
-const ALLOWED_TYPES: Record<string, string[]> = {
-  "application/pdf": [".pdf"],
-  "image/jpeg": [".jpg", ".jpeg"],
-  "image/png": [".png"],
-  "image/webp": [".webp"],
-};
+const ALLOWED_MIME_TYPES = [
+  "application/pdf",
+  "image/jpeg",
+  "image/jpg",
+  "image/pjpeg",
+  "image/png",
+  "image/webp",
+];
+const ALLOWED_EXTENSIONS = [".pdf", ".jpg", ".jpeg", ".jfif", ".png", ".webp"];
 
 /** `accept` attribute for the file input. */
-export const ATTACHMENT_ACCEPT = Object.entries(ALLOWED_TYPES)
-  .flatMap(([type, extensions]) => [type, ...extensions])
-  .join(",");
+export const ATTACHMENT_ACCEPT = [...ALLOWED_MIME_TYPES, ...ALLOWED_EXTENSIONS].join(",");
 
 export const ATTACHMENT_MESSAGES = {
   type: "نوع الملف غير مسموح. المسموح: ملفات PDF والصور (JPEG وPNG وWEBP)",
@@ -29,12 +30,14 @@ function extensionOf(name: string) {
   return dot >= 0 ? name.slice(dot).toLowerCase() : "";
 }
 
-/** Error message for a file the API would reject, or null when it is fine. */
+/**
+ * Error message for a file the API would clearly reject, or null when it may be fine.
+ * The type check is lenient (MIME type *or* extension allowed): browsers report types
+ * inconsistently, and the server's content check has the final say.
+ */
 export function validateAttachment(file: File): string | null {
-  const extension = extensionOf(file.name);
-  const typeOk = file.type
-    ? ALLOWED_TYPES[file.type]?.includes(extension) ?? false
-    : Object.values(ALLOWED_TYPES).some((extensions) => extensions.includes(extension));
+  const typeOk =
+    ALLOWED_MIME_TYPES.includes(file.type.toLowerCase()) || ALLOWED_EXTENSIONS.includes(extensionOf(file.name));
   if (!typeOk) return ATTACHMENT_MESSAGES.type;
   if (file.size === 0) return ATTACHMENT_MESSAGES.empty;
   if (file.size > MAX_ATTACHMENT_BYTES) return ATTACHMENT_MESSAGES.size;
