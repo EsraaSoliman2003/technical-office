@@ -7,6 +7,7 @@ import { skipToken } from "@reduxjs/toolkit/query";
 import { AlertTriangle, FileText, Image as ImageIcon, Paperclip, X } from "lucide-react";
 import { toast } from "sonner";
 import { applyServerFieldErrors, useFocusAfterRemoval, useSaveShortcut } from "@/components/list/formHelpers";
+import { useListFallbackFocus } from "@/components/list/ListPage";
 import { Button, ConfirmDialog, Input, Modal } from "@/components/ui";
 import {
   ATTACHMENT_ACCEPT,
@@ -71,6 +72,8 @@ export default function CompanyFormDialog({ company, onClose, onCreated }: Compa
   const pickButtonRef = useRef<HTMLButtonElement>(null);
   const savingRef = useRef(false);
   const dispatch = useAppDispatch();
+  // If the opener is gone on close (e.g. the row was deleted meanwhile): "إضافة" or the table card.
+  const listFallbackFocusRef = useListFallbackFocus();
 
   // The company being edited; set after a create, so a failed upload can be retried as an edit.
   const [companyId, setCompanyId] = useState<string | null>(company?.id ?? null);
@@ -307,6 +310,7 @@ export default function CompanyFormDialog({ company, onClose, onCreated }: Compa
         title={isEdit ? "تعديل شركة" : "إضافة شركة"}
         size="lg"
         preventClose={busy}
+        fallbackFocusRef={listFallbackFocusRef}
         footer={
           <>
             <Button variant="secondary" onClick={onClose} disabled={busy}>
