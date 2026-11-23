@@ -13,6 +13,8 @@ export type ListStateOptions<TSortBy extends string> = {
   defaultSortDir: SortDir;
   /** Columns whose first click sorts A→Z (text); the others start newest first. */
   ascendingFirst?: readonly TSortBy[];
+  /** Extra query-string filters (e.g. `["status"]` → `?status=`); changing one resets to page 1. */
+  filterKeys?: readonly string[];
 };
 
 export type ListState<TSortBy extends string> = {
@@ -31,7 +33,13 @@ export type ListState<TSortBy extends string> = {
   toggleSort: (column: TSortBy) => void;
   /** After a create: clear search, page 1, default sort (createdAt desc) → the new row is on top. */
   showNewest: () => void;
+  /** Current values of `filterKeys` (missing = no filter). */
+  filters: Record<string, string | undefined>;
+  /** Sets (or clears with null) a filter and goes to page 1. */
+  setFilter: (key: string, value: string | null) => void;
 };
+
+const NO_FILTERS: readonly string[] = [];
 
 function parsePage(value: string | null) {
   const page = Number(value);
@@ -49,6 +57,7 @@ export function useListState<TSortBy extends string>({
   defaultSortBy,
   defaultSortDir,
   ascendingFirst = [],
+  filterKeys = NO_FILTERS,
 }: ListStateOptions<TSortBy>): ListState<TSortBy> {
   const router = useRouter();
   const pathname = usePathname() ?? "/";
@@ -114,10 +123,27 @@ export function useListState<TSortBy extends string>({
     [sortBy, sortDir, ascendingFirst, updateQuery]
   );
 
+  // ---- Filters (?{key}=) ----
+  const filters = useMemo(
+    () => Object.fromEntries(filterKeys.map((key) => [key, searchParams.get(key) || undefined])),
+    [filterKeys, searchParams]
+  );
+  const setFilter = useCallback(
+    (key: string, value: string | null) => updateQuery({ [key]: value, page: null }),
+    [updateQuery]
+  );
+
+  /** Also clears the filters, so the new row is not hidden by one. */
   const showNewest = useCallback(() => {
     setSearchText("");
-    updateQuery({ search: null, page: null, sortBy: null, sortDir: null });
-  }, [updateQuery]);
+    updateQuery({
+      search: null,
+      page: null,
+      sortBy: null,
+      sortDir: null,
+      ...Object.fromEntries(filterKeys.map((key) => [key, null])),
+    });
+  }, [updateQuery, filterKeys]);
 
   const params = useMemo<ListParams<TSortBy>>(
     () => ({ search: urlSearch || undefined, page, pageSize, sortBy, sortDir }),
@@ -136,5 +162,7 @@ export function useListState<TSortBy extends string>({
     setPage,
     toggleSort,
     showNewest,
+    filters,
+    setFilter,
   };
 }

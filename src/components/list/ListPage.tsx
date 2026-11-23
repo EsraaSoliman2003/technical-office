@@ -54,6 +54,8 @@ type ListPageProps<T extends { id: string }, TSortBy extends string> = {
   onEdit?: (item: T) => void;
   /** Runs after the user confirms (an RTK mutation trigger). The page shows the toasts and moves focus. */
   onDelete?: (item: T) => PromiseLike<{ error?: unknown }>;
+  /** Extra controls next to the search box (e.g. a status filter). */
+  toolbar?: ReactNode;
   /** Dialogs of the page (they can read the focus fallback with `useListFallbackFocus`). */
   children?: ReactNode;
 };
@@ -73,6 +75,7 @@ export default function ListPage<T extends { id: string }, TSortBy extends strin
   onAdd,
   onEdit,
   onDelete,
+  toolbar,
   children,
 }: ListPageProps<T, TSortBy>) {
   const { currentData, isFetching, isError, error, refetch } = query;
@@ -155,7 +158,8 @@ export default function ListPage<T extends { id: string }, TSortBy extends strin
       />
     );
   } else if (!showSkeleton && items.length === 0) {
-    body = list.search ? (
+    const filtered = list.search !== "" || Object.values(list.filters).some(Boolean);
+    body = filtered ? (
       <EmptyState icon={SearchX} title="لا توجد نتائج للبحث" />
     ) : (
       <EmptyState title="لا توجد بيانات" />
@@ -199,8 +203,8 @@ export default function ListPage<T extends { id: string }, TSortBy extends strin
         aria-label={title}
         className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm"
       >
-        <div className="border-b border-border p-4">
-          <div className="relative max-w-md">
+        <div className="flex flex-wrap items-center gap-3 border-b border-border p-4">
+          <div className="relative w-full max-w-md">
             <Search
               size={18}
               aria-hidden="true"
@@ -232,6 +236,7 @@ export default function ListPage<T extends { id: string }, TSortBy extends strin
               </button>
             )}
           </div>
+          {toolbar}
         </div>
 
         {body}
