@@ -1,4 +1,4 @@
-import CompaniesPage from "@/features/companies/CompaniesPage";
+import CompaniesPage from "@/components/companies/CompaniesPage";
 
 export default function Page() {
   return <CompaniesPage />;
