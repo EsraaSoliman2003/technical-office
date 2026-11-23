@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useId, useRef } from "react";
+import { useId, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { applyServerFieldErrors, useSaveShortcut } from "@/components/list/formHelpers";
 import { Button, Input, Modal } from "@/components/ui";
 import { useCreateLookupMutation, useUpdateLookupMutation } from "@/rtk/endpoints/lookupApi";
 import type { LookupDto, LookupResource } from "@/types/lookup";
@@ -47,10 +48,12 @@ export default function LookupFormDialog({ resource, fieldLabel, item, onClose, 
       if ("error" in result) {
         const failure = isApiFailure(result.error) ? result.error : undefined;
         if (failure && (failure.status === 400 || failure.status === 409)) {
-          const nameKey = Object.keys(failure.fieldErrors).find((key) => key.toLowerCase() === "name");
-          const messages = nameKey ? failure.fieldErrors[nameKey] : Object.values(failure.fieldErrors).flat();
-          const message = messages.join(" ") || getFailureMessage(failure);
-          form.setError("name", { type: "server", message }, { shouldFocus: true });
+          applyServerFieldErrors(
+            failure,
+            ["name"],
+            (field, message, focus) => form.setError(field, { type: "server", message }, { shouldFocus: focus }),
+            "name"
+          );
         } else if (failure?.status === 403) {
           toast.error(NO_PERMISSION_MESSAGE);
         } else {
@@ -67,16 +70,9 @@ export default function LookupFormDialog({ resource, fieldLabel, item, onClose, 
     }
   };
 
-  // F2 = save (like the old system).
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "F2") return;
-      event.preventDefault();
-      if (!savingRef.current) formRef.current?.requestSubmit();
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  useSaveShortcut(() => {
+    if (!savingRef.current) formRef.current?.requestSubmit();
+  });
 
   return (
     <Modal
