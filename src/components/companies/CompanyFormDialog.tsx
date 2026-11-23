@@ -1,39 +1,31 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState, type DragEvent } from "react";
+import { useId, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { skipToken } from "@reduxjs/toolkit/query";
-import { AlertTriangle, FileText, Image as ImageIcon, Paperclip, X } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
-import { applyServerFieldErrors, useFocusAfterRemoval, useSaveShortcut } from "@/components/list/formHelpers";
+import { AttachmentUploadField } from "@/components/attachments/AttachmentUploadField";
+import { SavedAttachments } from "@/components/attachments/SavedAttachments";
+import { usePendingFiles, useWindowFileDropGuard } from "@/components/attachments/usePendingFiles";
+import { applyServerFieldErrors, isInTopDialog, useSaveShortcut } from "@/components/list/formHelpers";
 import { useListFallbackFocus } from "@/components/list/ListPage";
-import { Button, ConfirmDialog, Input, Modal } from "@/components/ui";
-import {
-  ATTACHMENT_ACCEPT,
-  ATTACHMENT_MESSAGES,
-  formatFileSize,
-  MAX_ATTACHMENTS,
-  MAX_UPLOAD_TOTAL_BYTES,
-  UPLOAD_TOTAL_MESSAGE,
-  validateAttachment,
-} from "@/lib/attachments";
-import { cn } from "@/lib/cn";
+import { Button, Input, Modal } from "@/components/ui";
+import { uploadAttachments } from "@/lib/attachmentTransfer";
 import {
   companyApi,
+  companyAttachmentsUrl,
   companyAttachmentTags,
-  uploadCompanyAttachments,
   useCreateCompanyMutation,
   useGetCompanyQuery,
   useRemoveCompanyAttachmentMutation,
   useUpdateCompanyMutation,
 } from "@/rtk/endpoints/companyApi";
 import { useAppDispatch } from "@/rtk/hooks";
-import type { AttachmentDto, CompanyInput, CompanyListItemDto } from "@/types/company";
+import type { CompanyInput, CompanyListItemDto } from "@/types/company";
 import { getFailureMessage, isApiFailure, NO_PERMISSION_MESSAGE, type ApiFailure } from "@/utils/apiFailure";
 import { getCompanySchema, normalizeMobile, type CompanySchemaType } from "@/validation/companySchema";
-import { AttachmentList, AttachmentPreview } from "./AttachmentList";
-import { useAttachmentFiles } from "./useAttachmentFiles";
 
 type CompanyFormDialogProps = {
   /** Company to edit; omit to add a new one. */
@@ -42,8 +34,6 @@ type CompanyFormDialogProps = {
   /** Called after the company was created (also when its upload then failed). */
   onCreated?: () => void;
 };
-
-type PendingFile = { key: string; file: File };
 
 const FORM_FIELDS = ["name", "commercialRegister", "mobile"] as const;
 
@@ -66,14 +56,13 @@ function sameInput(a: CompanyInput, b: CompanyInput | null) {
  */
 export default function CompanyFormDialog({ company, onClose, onCreated }: CompanyFormDialogProps) {
   const formId = useId();
-  const filesHintId = useId();
   const formRef = useRef<HTMLFormElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const pickButtonRef = useRef<HTMLButtonElement>(null);
   const savingRef = useRef(false);
   const dispatch = useAppDispatch();
   // If the opener is gone on close (e.g. the row was deleted meanwhile): "إضافة" or the table card.
   const listFallbackFocusRef = useListFallbackFocus();
+  useWindowFileDropGuard();
 
   // The company being edited; set after a create, so a failed upload can be retried as an edit.
   const [companyId, setCompanyId] = useState<string | null>(company?.id ?? null);
@@ -89,7 +78,7 @@ export default function CompanyFormDialog({ company, onClose, onCreated }: Compa
 
   const { currentData: details } = useGetCompanyQuery(companyId ?? skipToken);
   const existing = details?.attachments;
-  const existingCount = existing?.length ?? company?.attachmentCount ?? 0;
+  const [removeAttachment] = useRemoveCompanyAttachmentMutation();
 
   const [createCompany] = useCreateCompanyMutation();
   const [updateCompany] = useUpdateCompanyMutation();
@@ -105,118 +94,11 @@ export default function CompanyFormDialog({ company, onClose, onCreated }: Compa
   const { errors } = form.formState;
 
   const [saving, setSaving] = useState(false);
-  /** Upload progress in %; null = size unknown; undefined = not uploading. */
-  const [progress, setProgress] = useState<number | null | undefined>(undefined);
   const [uploadError, setUploadError] = useState<string | null>(null);
-
-  // ---- New files ----
-  const [pending, setPending] = useState<PendingFile[]>([]);
-  const [filesError, setFilesError] = useState<string | null>(null);
-  const [dragging, setDragging] = useState(false);
-  const nextKeyRef = useRef(0);
-
-  const addFiles = (fileList: FileList | null) => {
-    if (!fileList || fileList.length === 0 || savingRef.current) return;
-    const messages: string[] = [];
-    const accepted: PendingFile[] = [];
-    let available = MAX_ATTACHMENTS - existingCount - pending.length;
-    let totalBytes = pending.reduce((sum, { file }) => sum + file.size, 0);
-    let overLimit = false;
-    let overTotal = false;
-
-    for (const file of Array.from(fileList)) {
-      const duplicate = [...pending, ...accepted].some(
-        ({ file: other }) =>
-          other.name === file.name && other.size === file.size && other.lastModified === file.lastModified
-      );
-      if (duplicate) continue;
-      const error = validateAttachment(file);
-      if (error) {
-        messages.push(`${file.name}: ${error}`);
-      } else if (available <= 0) {
-        overLimit = true;
-      } else if (totalBytes + file.size > MAX_UPLOAD_TOTAL_BYTES) {
-        overTotal = true;
-      } else {
-        accepted.push({ key: `file-${nextKeyRef.current++}`, file });
-        available--;
-        totalBytes += file.size;
-      }
-    }
-    if (overLimit) messages.push(ATTACHMENT_MESSAGES.count);
-    if (overTotal) messages.push(UPLOAD_TOTAL_MESSAGE);
-
-    setPending((current) => [...current, ...accepted]);
-    setFilesError(messages.length > 0 ? messages.join("\n") : null);
-  };
-
-  const removePending = (key: string) => {
-    setPending((current) => current.filter((item) => item.key !== key));
-    setFilesError(null);
-  };
-
-  // While the dialog is open, a file dropped outside the drop zone must not make the browser
-  // open it (leaving the app). The drop zone handles its own drops.
-  useEffect(() => {
-    const preventFileDrop = (event: globalThis.DragEvent) => {
-      if (event.dataTransfer?.types.includes("Files")) event.preventDefault();
-    };
-    window.addEventListener("dragover", preventFileDrop);
-    window.addEventListener("drop", preventFileDrop);
-    return () => {
-      window.removeEventListener("dragover", preventFileDrop);
-      window.removeEventListener("drop", preventFileDrop);
-    };
-  }, []);
-
-  // dragenter/dragleave also fire when moving over the zone's children; count them so the
-  // highlight only goes off when the pointer really leaves the zone (no flicker).
-  const dragDepthRef = useRef(0);
-  const handleDragEnter = (event: DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    dragDepthRef.current += 1;
-    if (!savingRef.current) setDragging(true);
-  };
-  const handleDragLeave = () => {
-    dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
-    if (dragDepthRef.current === 0) setDragging(false);
-  };
-  const handleDrop = (event: DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    dragDepthRef.current = 0;
-    setDragging(false);
-    addFiles(event.dataTransfer.files);
-  };
-
-  // ---- Saved attachments (edit) ----
-  const files = useAttachmentFiles(companyId ?? "");
-  const [confirming, setConfirming] = useState<AttachmentDto | null>(null);
-  const [removeAttachment, { isLoading: removingAttachment }] = useRemoveCompanyAttachmentMutation();
-  const removingRef = useRef(false);
-  const existingIds = useMemo(() => existing?.map((attachment) => attachment.id), [existing]);
-  const markRemoved = useFocusAfterRemoval(existingIds, pickButtonRef);
-
-  const confirmRemove = async () => {
-    if (!confirming || !companyId || removingRef.current) return;
-    removingRef.current = true;
-    let result;
-    try {
-      result = await removeAttachment({ companyId, attachmentId: confirming.id });
-    } finally {
-      removingRef.current = false;
-    }
-    const removed = confirming;
-    setConfirming(null);
-
-    if ("error" in result) {
-      const failure = isApiFailure(result.error) ? result.error : undefined;
-      toast.error(failure?.status === 403 ? NO_PERMISSION_MESSAGE : getFailureMessage(failure));
-      return;
-    }
-    toast.success("تم حذف المرفق");
-    if (files.preview?.attachment.id === removed.id) files.closePreview();
-    markRemoved(removed.id);
-  };
+  const newFiles = usePendingFiles({
+    existingCount: existing?.length ?? company?.attachmentCount ?? 0,
+    disabled: saving,
+  });
 
   // ---- Save ----
   const showSaveError = (failure: ApiFailure | undefined) => {
@@ -229,19 +111,10 @@ export default function CompanyFormDialog({ company, onClose, onCreated }: Compa
     toast.error(failure?.status === 403 ? NO_PERMISSION_MESSAGE : getFailureMessage(failure));
   };
 
-  /** `sent`: the files of the failed request, in order (server keys `files[i]` index into it). */
   const showUploadError = (failure: ApiFailure | undefined, sent: File[]) => {
-    const filesMessages: string[] = [];
-    for (const [key, messages] of Object.entries(failure?.fieldErrors ?? {})) {
-      // "files" (whole request) or "files[i]" / "files[i].…" (one file)
-      const match = /^files(?:\[(\d+)\])?(?:$|\.)/i.exec(key);
-      if (!match) continue;
-      const file = match[1] !== undefined ? sent[Number(match[1])] : undefined;
-      for (const message of messages) filesMessages.push(file ? `${file.name}: ${message}` : message);
-    }
-    if (filesMessages.length > 0) setFilesError(filesMessages.join("\n"));
+    const hasFileErrors = newFiles.showServerErrors(failure, sent);
     const reason =
-      failure?.status === 403 ? NO_PERMISSION_MESSAGE : filesMessages.length > 0 ? null : getFailureMessage(failure);
+      failure?.status === 403 ? NO_PERMISSION_MESSAGE : hasFileErrors ? null : getFailureMessage(failure);
     setUploadError(
       `تم حفظ بيانات الشركة، لكن تعذر رفع المرفقات${reason ? `: ${reason}` : "."} يمكنك إعادة المحاولة بالضغط على «حفظ».`
     );
@@ -271,19 +144,19 @@ export default function CompanyFormDialog({ company, onClose, onCreated }: Compa
         }
       }
 
-      if (pending.length > 0) {
-        setProgress(0);
-        const sent = pending.map(({ file }) => file);
+      if (newFiles.files.length > 0) {
+        newFiles.setProgress(0);
+        const sent = newFiles.files;
         try {
-          await uploadCompanyAttachments(id, sent, setProgress);
+          await uploadAttachments(companyAttachmentsUrl(id), sent, { onProgress: newFiles.setProgress });
         } catch (error) {
           showUploadError(isApiFailure(error) ? error : undefined, sent);
           return;
         } finally {
-          setProgress(undefined);
+          newFiles.setProgress(undefined);
           dispatch(companyApi.util.invalidateTags(companyAttachmentTags(id)));
         }
-        setPending([]);
+        newFiles.clear();
       }
 
       toast.success("تم الحفظ بنجاح");
@@ -294,234 +167,103 @@ export default function CompanyFormDialog({ company, onClose, onCreated }: Compa
     }
   };
 
+  // Not while a confirmation (deleting a saved attachment) is open over this dialog.
   useSaveShortcut(() => {
-    if (!savingRef.current && confirming === null) formRef.current?.requestSubmit();
+    if (!savingRef.current && isInTopDialog(formRef.current)) formRef.current?.requestSubmit();
   });
 
-  const busy = saving || removingAttachment;
   const isEdit = companyId !== null;
-  const uploading = progress !== undefined;
 
   return (
-    <>
-      <Modal
-        open
-        onClose={onClose}
-        title={isEdit ? "تعديل شركة" : "إضافة شركة"}
-        size="lg"
-        preventClose={busy}
-        fallbackFocusRef={listFallbackFocusRef}
-        footer={
-          <>
-            <Button variant="secondary" onClick={onClose} disabled={busy}>
-              إلغاء
-            </Button>
-            <Button type="submit" form={formId} loading={saving}>
-              حفظ (F2)
-            </Button>
-          </>
-        }
+    <Modal
+      open
+      onClose={onClose}
+      title={isEdit ? "تعديل شركة" : "إضافة شركة"}
+      size="lg"
+      preventClose={saving}
+      fallbackFocusRef={listFallbackFocusRef}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose} disabled={saving}>
+            إلغاء
+          </Button>
+          <Button type="submit" form={formId} loading={saving}>
+            حفظ (F2)
+          </Button>
+        </>
+      }
+    >
+      <form
+        id={formId}
+        ref={formRef}
+        noValidate
+        onSubmit={(event) => {
+          if (savingRef.current) {
+            event.preventDefault(); // prevent double submit
+            return;
+          }
+          void form.handleSubmit(onSubmit)(event);
+        }}
+        className="space-y-4"
       >
-        <form
-          id={formId}
-          ref={formRef}
-          noValidate
-          onSubmit={(event) => {
-            if (savingRef.current) {
-              event.preventDefault(); // prevent double submit
-              return;
-            }
-            void form.handleSubmit(onSubmit)(event);
-          }}
-          className="space-y-4"
-        >
-          {uploadError && (
-            <div
-              role="alert"
-              className="flex items-start gap-2 rounded-lg border border-danger/30 bg-danger-soft px-3 py-2.5 text-sm text-danger"
-            >
-              <AlertTriangle size={18} aria-hidden="true" className="mt-0.5 shrink-0" />
-              <p>{uploadError}</p>
-            </div>
-          )}
-
-          <Input
-            label="الشركة"
-            required
-            autoComplete="off"
-            data-autofocus
-            readOnly={saving}
-            error={errors.name?.message}
-            {...form.register("name")}
-          />
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Input
-              label="السجل التجاري"
-              dir="ltr"
-              autoComplete="off"
-              readOnly={saving}
-              error={errors.commercialRegister?.message}
-              {...form.register("commercialRegister")}
-            />
-            <Input
-              label="الموبايل"
-              type="tel"
-              dir="ltr"
-              inputMode="tel"
-              autoComplete="off"
-              readOnly={saving}
-              error={errors.mobile?.message}
-              {...form.register("mobile")}
-            />
+        {uploadError && (
+          <div
+            role="alert"
+            className="flex items-start gap-2 rounded-lg border border-danger/30 bg-danger-soft px-3 py-2.5 text-sm text-danger"
+          >
+            <AlertTriangle size={18} aria-hidden="true" className="mt-0.5 shrink-0" />
+            <p>{uploadError}</p>
           </div>
+        )}
 
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between gap-2">
-              <span id={`${filesHintId}-label`} className="text-sm font-semibold text-foreground">
-                المرفقات
-              </span>
-              <span className="text-xs text-muted-foreground tabular-nums">
-                {existingCount + pending.length} من {MAX_ATTACHMENTS}
-              </span>
-            </div>
+        <Input
+          label="الشركة"
+          required
+          autoComplete="off"
+          data-autofocus
+          readOnly={saving}
+          error={errors.name?.message}
+          {...form.register("name")}
+        />
 
-            <div
-              role="group"
-              aria-labelledby={`${filesHintId}-label`}
-              onDragEnter={handleDragEnter}
-              onDragOver={(event) => event.preventDefault()}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              className={cn(
-                "flex flex-col items-center gap-2 rounded-xl border-2 border-dashed px-4 py-5 text-center transition-colors",
-                dragging ? "border-primary bg-primary-soft" : "border-border bg-surface-muted/40"
-              )}
-            >
-              <Paperclip size={22} aria-hidden="true" className="text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">اسحب الملفات وأفلتها هنا، أو</p>
-              <Button
-                ref={pickButtonRef}
-                size="sm"
-                variant="secondary"
-                onClick={() => fileInputRef.current?.click()}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Input
+            label="السجل التجاري"
+            dir="ltr"
+            autoComplete="off"
+            readOnly={saving}
+            error={errors.commercialRegister?.message}
+            {...form.register("commercialRegister")}
+          />
+          <Input
+            label="الموبايل"
+            type="tel"
+            dir="ltr"
+            inputMode="tel"
+            autoComplete="off"
+            readOnly={saving}
+            error={errors.mobile?.message}
+            {...form.register("mobile")}
+          />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <AttachmentUploadField label="المرفقات" files={newFiles} disabled={saving} pickButtonRef={pickButtonRef} />
+
+          {companyId && existing && existing.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <p className="text-xs font-semibold text-muted-foreground">المرفقات المحفوظة</p>
+              <SavedAttachments
+                attachments={existing}
+                baseUrl={companyAttachmentsUrl(companyId)}
+                onRemove={(attachment) => removeAttachment({ companyId, attachmentId: attachment.id })}
                 disabled={saving}
-                aria-describedby={filesHintId}
-              >
-                <Paperclip size={14} aria-hidden="true" />
-                اختيار ملفات
-              </Button>
-              <p id={filesHintId} className="text-xs text-muted-foreground">
-                ملفات PDF أو صور، بحد أقصى 10 ميجابايت للملف
-              </p>
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept={ATTACHMENT_ACCEPT}
-                tabIndex={-1}
-                aria-hidden="true"
-                className="hidden"
-                onChange={(event) => {
-                  addFiles(event.target.files);
-                  event.target.value = ""; // allow picking the same file again
-                }}
+                fallbackFocusRef={pickButtonRef}
               />
             </div>
-
-            {filesError && (
-              <p role="alert" className="text-xs whitespace-pre-line text-danger">
-                {filesError}
-              </p>
-            )}
-
-            {pending.length > 0 && (
-              <ul aria-label="ملفات جديدة" className="flex flex-wrap gap-2">
-                {pending.map(({ key, file }) => {
-                  const Icon = file.type.startsWith("image/") ? ImageIcon : FileText;
-                  return (
-                    <li
-                      key={key}
-                      className="flex max-w-full items-center gap-2 rounded-lg border border-border bg-surface py-1.5 ps-2.5 pe-1 text-sm"
-                    >
-                      <Icon size={16} aria-hidden="true" className="shrink-0 text-primary-text" />
-                      <span dir="auto" className="max-w-56 truncate font-semibold" title={file.name}>
-                        {file.name}
-                      </span>
-                      <span dir="ltr" className="text-xs text-muted-foreground tabular-nums">
-                        {formatFileSize(file.size)}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => removePending(key)}
-                        disabled={saving}
-                        aria-label={`إزالة ${file.name}`}
-                        title="إزالة"
-                        className="rounded-md p-1 text-muted-foreground hover:bg-danger-soft hover:text-danger disabled:opacity-50"
-                      >
-                        <X size={14} aria-hidden="true" />
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-
-            {uploading && (
-              <div className="flex flex-col gap-1.5">
-                <p className="text-xs text-muted-foreground" aria-live="polite">
-                  {progress === 100 ? (
-                    // All bytes sent; the server is still checking and storing the files.
-                    "جاري المعالجة…"
-                  ) : (
-                    <>
-                      جاري رفع المرفقات…{" "}
-                      {progress !== null && <span className="tabular-nums">{progress}%</span>}
-                    </>
-                  )}
-                </p>
-                <div
-                  role="progressbar"
-                  aria-label="رفع المرفقات"
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-valuenow={progress ?? undefined}
-                  className="h-2 overflow-hidden rounded-full bg-surface-muted"
-                >
-                  <div
-                    className={cn("h-full rounded-full bg-primary transition-[width]", (progress === null || progress === 100) && "animate-pulse")}
-                    style={{ width: `${progress ?? 100}%` }}
-                  />
-                </div>
-              </div>
-            )}
-
-            {existing && existing.length > 0 && (
-              <div className="flex flex-col gap-2">
-                <p className="text-xs font-semibold text-muted-foreground">المرفقات المحفوظة</p>
-                <AttachmentList
-                  attachments={existing}
-                  busy={files.busy}
-                  onView={files.view}
-                  onDownload={files.download}
-                  onDelete={setConfirming}
-                  disabled={saving}
-                />
-                {files.preview && <AttachmentPreview preview={files.preview} onClose={files.closePreview} />}
-              </div>
-            )}
-          </div>
-        </form>
-      </Modal>
-
-      <ConfirmDialog
-        open={confirming !== null}
-        loading={removingAttachment}
-        message={confirming ? `هل أنت متأكد من حذف المرفق "${confirming.fileName}"؟` : undefined}
-        onConfirm={confirmRemove}
-        onCancel={() => setConfirming(null)}
-        fallbackFocusRef={pickButtonRef}
-      />
-    </>
+          )}
+        </div>
+      </form>
+    </Modal>
   );
 }

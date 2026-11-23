@@ -4,7 +4,7 @@ import { Download, Eye, FileText, Image as ImageIcon, Trash2, X } from "lucide-r
 import { Button } from "@/components/ui";
 import { formatFileSize, isImageType } from "@/lib/attachments";
 import { formatDateTime } from "@/lib/formatDate";
-import type { AttachmentDto } from "@/types/company";
+import type { AttachmentDto } from "@/types/attachment";
 import type { AttachmentBusy, AttachmentPreviewState } from "./useAttachmentFiles";
 
 type AttachmentListProps = {

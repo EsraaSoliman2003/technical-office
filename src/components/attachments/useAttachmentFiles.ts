@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { isImageType, isPdfType } from "@/lib/attachments";
-import { fetchCompanyAttachment } from "@/rtk/endpoints/companyApi";
-import type { AttachmentDto } from "@/types/company";
+import { fetchAttachmentBlob } from "@/lib/attachmentTransfer";
+import type { AttachmentDto } from "@/types/attachment";
 import { getFailureMessage, isApiFailure } from "@/utils/apiFailure";
 
 export type AttachmentPreviewState = { attachment: AttachmentDto; url: string };
@@ -26,14 +26,14 @@ function saveBlob(blob: Blob, fileName: string) {
 }
 
 /**
- * View / download a company's attachments. Files need the Bearer token, so they are fetched with
+ * View / download attachments under `baseUrl` (e.g. `companies/{id}/attachments`). Files need the Bearer token, so they are fetched with
  * axios as a Blob and never linked to directly:
  * - image → preview inside the dialog (`preview`),
  * - PDF → new tab via an object URL (popup blocked → download),
  * - download → original file name.
  * Every object URL is revoked when it is no longer needed.
  */
-export function useAttachmentFiles(companyId: string) {
+export function useAttachmentFiles(baseUrl: string) {
   const [preview, setPreview] = useState<AttachmentPreviewState | null>(null);
   const [busy, setBusy] = useState<AttachmentBusy>(null);
   const busyRef = useRef(false);
@@ -59,7 +59,7 @@ export function useAttachmentFiles(companyId: string) {
       busyRef.current = true;
       setBusy({ id: attachment.id, action });
       try {
-        const blob = await fetchCompanyAttachment(companyId, attachment.id);
+        const blob = await fetchAttachmentBlob(`${baseUrl}/${attachment.id}`);
         // Use the stored type so the browser shows PDFs/images correctly.
         return new Blob([blob], { type: attachment.contentType || blob.type });
       } catch (error) {
@@ -70,7 +70,7 @@ export function useAttachmentFiles(companyId: string) {
         if (mountedRef.current) setBusy(null);
       }
     },
-    [companyId]
+    [baseUrl]
   );
 
   const download = useCallback(

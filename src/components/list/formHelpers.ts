@@ -29,6 +29,16 @@ export function useSaveShortcut(onSave: () => void) {
 }
 
 /**
+ * True when `element` is inside the top-most open dialog (dialogs are portaled to <body> in
+ * opening order). Use it to ignore F2 while a confirmation is open over a form dialog.
+ */
+export function isInTopDialog(element: Element | null) {
+  const dialogs = document.querySelectorAll('[role="dialog"][aria-modal="true"]');
+  const top = dialogs[dialogs.length - 1];
+  return element !== null && top !== undefined && top.contains(element);
+}
+
+/**
  * After deleting a row: a dialog returns focus to the row's delete button, which is removed once
  * the data refreshes. When that happens (focus fell to <body>), focus `fallbackRef` instead.
  * `currentIds` must be memoized. Returns `markRemoved(id)` to call after a successful delete.
