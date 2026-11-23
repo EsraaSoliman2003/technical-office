@@ -13,12 +13,8 @@ const SEGMENT_LABELS: Record<string, string> = {
   // UI drafts (not connected to the backend yet)
   projects: "المشاريع",
   "project-types": "انواع المشاريع",
-  "transport-companies": "شركات النقل",
-  materials: "الخامات",
   "company-materials": "خامات الشركات",
   "project-materials": "خامات المشاريع",
-  factories: "المصانع",
-  mixers: "الخلطات",
   "contract-report": "تقرير العقود",
   contracts: "العقود",
   quotations: "المقايسات",
