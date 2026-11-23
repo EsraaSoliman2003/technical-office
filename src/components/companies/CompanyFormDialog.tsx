@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useRef, useState, type DragEvent } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type DragEvent } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { skipToken } from "@reduxjs/toolkit/query";
@@ -152,8 +152,35 @@ export default function CompanyFormDialog({ company, onClose, onCreated }: Compa
     setFilesError(null);
   };
 
+  // While the dialog is open, a file dropped outside the drop zone must not make the browser
+  // open it (leaving the app). The drop zone handles its own drops.
+  useEffect(() => {
+    const preventFileDrop = (event: globalThis.DragEvent) => {
+      if (event.dataTransfer?.types.includes("Files")) event.preventDefault();
+    };
+    window.addEventListener("dragover", preventFileDrop);
+    window.addEventListener("drop", preventFileDrop);
+    return () => {
+      window.removeEventListener("dragover", preventFileDrop);
+      window.removeEventListener("drop", preventFileDrop);
+    };
+  }, []);
+
+  // dragenter/dragleave also fire when moving over the zone's children; count them so the
+  // highlight only goes off when the pointer really leaves the zone (no flicker).
+  const dragDepthRef = useRef(0);
+  const handleDragEnter = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    dragDepthRef.current += 1;
+    if (!savingRef.current) setDragging(true);
+  };
+  const handleDragLeave = () => {
+    dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+    if (dragDepthRef.current === 0) setDragging(false);
+  };
   const handleDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
+    dragDepthRef.current = 0;
     setDragging(false);
     addFiles(event.dataTransfer.files);
   };
@@ -358,11 +385,9 @@ export default function CompanyFormDialog({ company, onClose, onCreated }: Compa
             <div
               role="group"
               aria-labelledby={`${filesHintId}-label`}
-              onDragOver={(event) => {
-                event.preventDefault();
-                if (!saving) setDragging(true);
-              }}
-              onDragLeave={() => setDragging(false)}
+              onDragEnter={handleDragEnter}
+              onDragOver={(event) => event.preventDefault()}
+              onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               className={cn(
                 "flex flex-col items-center gap-2 rounded-xl border-2 border-dashed px-4 py-5 text-center transition-colors",
