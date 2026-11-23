@@ -465,9 +465,16 @@ export default function CompanyFormDialog({ company, onClose, onCreated }: Compa
 
             {uploading && (
               <div className="flex flex-col gap-1.5">
-                <p className="text-xs text-muted-foreground">
-                  جاري رفع المرفقات…{" "}
-                  {progress !== null && <span className="tabular-nums">{progress}%</span>}
+                <p className="text-xs text-muted-foreground" aria-live="polite">
+                  {progress === 100 ? (
+                    // All bytes sent; the server is still checking and storing the files.
+                    "جاري المعالجة…"
+                  ) : (
+                    <>
+                      جاري رفع المرفقات…{" "}
+                      {progress !== null && <span className="tabular-nums">{progress}%</span>}
+                    </>
+                  )}
                 </p>
                 <div
                   role="progressbar"
@@ -478,7 +485,7 @@ export default function CompanyFormDialog({ company, onClose, onCreated }: Compa
                   className="h-2 overflow-hidden rounded-full bg-surface-muted"
                 >
                   <div
-                    className={cn("h-full rounded-full bg-primary transition-[width]", progress === null && "animate-pulse")}
+                    className={cn("h-full rounded-full bg-primary transition-[width]", (progress === null || progress === 100) && "animate-pulse")}
                     style={{ width: `${progress ?? 100}%` }}
                   />
                 </div>
