@@ -19,17 +19,22 @@ import { getLookup, lookupHref, type LookupResource } from "@/lib/lookups";
 /**
  * A hub card is one of:
  * - a built lookup (`lookup`: title and link come from `LOOKUPS`),
+ * - another built page (`title` + `href`),
  * - a UI draft not connected to the backend yet (`title` + `draft` link, shown with "مسودة"),
  * - a placeholder that is not built yet (`title` only, shown as "قريبًا").
  */
 type DataItem =
   | { lookup: LookupResource; icon: LucideIcon }
+  | { title: string; icon: LucideIcon; href: string }
   | { title: string; icon: LucideIcon; draft?: string };
 type DataSection = { title: string; items: DataItem[] };
 
 function cardProps(item: DataItem) {
   if ("lookup" in item) {
     return { key: item.lookup, title: getLookup(item.lookup).title, href: lookupHref(item.lookup), draft: false };
+  }
+  if ("href" in item) {
+    return { key: item.title, title: item.title, href: item.href, draft: false };
   }
   return { key: item.title, title: item.title, href: item.draft, draft: Boolean(item.draft) };
 }
@@ -53,7 +58,7 @@ const sections: DataSection[] = [
   {
     title: "الشركات",
     items: [
-      { title: "الشركات", icon: Building, draft: "/data/companies/" },
+      { title: "الشركات", icon: Building, href: "/data/companies/" },
       { title: "شركات النقل", icon: Truck, draft: "/data/transport-companies/" },
     ],
   },
