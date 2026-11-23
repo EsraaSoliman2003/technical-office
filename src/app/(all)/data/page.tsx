@@ -17,17 +17,21 @@ import ModuleCard from "@/components/ModuleCard";
 import { getLookup, lookupHref, type LookupResource } from "@/lib/lookups";
 
 /**
- * A hub card is either a built lookup (`lookup`: title and link come from `LOOKUPS`)
- * or a placeholder that is not built yet (`title` only, shown as "قريبًا").
+ * A hub card is one of:
+ * - a built lookup (`lookup`: title and link come from `LOOKUPS`),
+ * - a UI draft not connected to the backend yet (`title` + `draft` link, shown with "مسودة"),
+ * - a placeholder that is not built yet (`title` only, shown as "قريبًا").
  */
-type DataItem = { lookup: LookupResource; icon: LucideIcon } | { title: string; icon: LucideIcon };
+type DataItem =
+  | { lookup: LookupResource; icon: LucideIcon }
+  | { title: string; icon: LucideIcon; draft?: string };
 type DataSection = { title: string; items: DataItem[] };
 
 function cardProps(item: DataItem) {
   if ("lookup" in item) {
-    return { key: item.lookup, title: getLookup(item.lookup).title, href: lookupHref(item.lookup) };
+    return { key: item.lookup, title: getLookup(item.lookup).title, href: lookupHref(item.lookup), draft: false };
   }
-  return { key: item.title, title: item.title, href: undefined };
+  return { key: item.title, title: item.title, href: item.draft, draft: Boolean(item.draft) };
 }
 
 // Master-data lists from the old system's "البيانات" menu.
@@ -42,30 +46,30 @@ const sections: DataSection[] = [
   {
     title: "المشاريع",
     items: [
-      { title: "المشاريع", icon: Briefcase },
-      { title: "انواع المشاريع", icon: Tags },
+      { title: "المشاريع", icon: Briefcase, draft: "/data/projects/" },
+      { title: "انواع المشاريع", icon: Tags, draft: "/data/project-types/" },
     ],
   },
   {
     title: "الشركات",
     items: [
-      { title: "الشركات", icon: Building },
-      { title: "شركات النقل", icon: Truck },
+      { title: "الشركات", icon: Building, draft: "/data/companies/" },
+      { title: "شركات النقل", icon: Truck, draft: "/data/transport-companies/" },
     ],
   },
   {
     title: "الخامات",
     items: [
-      { title: "الخامات", icon: Boxes },
-      { title: "خامات الشركات", icon: PackageCheck },
-      { title: "خامات المشاريع", icon: PackageOpen },
-      { title: "المصانع", icon: Factory },
-      { title: "الخلطات", icon: FlaskConical },
+      { title: "الخامات", icon: Boxes, draft: "/data/materials/" },
+      { title: "خامات الشركات", icon: PackageCheck, draft: "/data/company-materials/" },
+      { title: "خامات المشاريع", icon: PackageOpen, draft: "/data/project-materials/" },
+      { title: "المصانع", icon: Factory, draft: "/data/factories/" },
+      { title: "الخلطات", icon: FlaskConical, draft: "/data/mixers/" },
     ],
   },
   {
     title: "التقارير",
-    items: [{ title: "تقرير العقود", icon: FileChartColumn }],
+    items: [{ title: "تقرير العقود", icon: FileChartColumn, draft: "/data/contract-report/" }],
   },
 ];
 
@@ -88,10 +92,10 @@ export default function DataHubPage() {
               </h2>
               <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
                 {section.items.map((item) => {
-                  const { key, title, href } = cardProps(item);
+                  const { key, title, href, draft } = cardProps(item);
                   return (
                     <li key={key}>
-                      <ModuleCard title={title} icon={item.icon} href={href} size="md" />
+                      <ModuleCard title={title} icon={item.icon} href={href} size="md" draft={draft} />
                     </li>
                   );
                 })}

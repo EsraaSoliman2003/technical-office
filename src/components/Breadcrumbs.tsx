@@ -9,6 +9,21 @@ import { LOOKUPS } from "@/lib/lookups";
 const SEGMENT_LABELS: Record<string, string> = {
   data: "البيانات",
   ...Object.fromEntries(LOOKUPS.map((lookup) => [lookup.resource, lookup.title])),
+  // UI drafts (not connected to the backend yet)
+  projects: "المشاريع",
+  "project-types": "انواع المشاريع",
+  companies: "الشركات",
+  "transport-companies": "شركات النقل",
+  materials: "الخامات",
+  "company-materials": "خامات الشركات",
+  "project-materials": "خامات المشاريع",
+  factories: "المصانع",
+  mixers: "الخلطات",
+  "contract-report": "تقرير العقود",
+  contracts: "العقود",
+  quotations: "المقايسات",
+  statements: "سلفة + مستخلص",
+  deducted: "الخامات المخصومة",
 };
 
 type Crumb = { label: string; href: string };

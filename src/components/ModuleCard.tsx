@@ -9,10 +9,12 @@ type ModuleCardProps = {
   /** Active cards link here. Without `href` the card is shown disabled with a "قريبًا" badge. */
   href?: string;
   size?: "lg" | "md";
+  /** UI draft that isn't connected to the backend yet: clickable, with a "مسودة" badge. */
+  draft?: boolean;
 };
 
 /** Clickable module/list card used on the home page and the data hub. */
-export default function ModuleCard({ title, icon: Icon, href, size = "lg" }: ModuleCardProps) {
+export default function ModuleCard({ title, icon: Icon, href, size = "lg", draft = false }: ModuleCardProps) {
   const isLarge = size === "lg";
   const base = cn(
     "group relative flex h-full flex-col items-center justify-center rounded-2xl border text-center",
@@ -51,6 +53,11 @@ export default function ModuleCard({ title, icon: Icon, href, size = "lg" }: Mod
         "focus-visible:-translate-y-1 focus-visible:border-primary/40 focus-visible:shadow-lg"
       )}
     >
+      {draft && (
+        <Badge variant="accent" className="absolute top-3 left-3">
+          مسودة
+        </Badge>
+      )}
       <span
         className={cn(
           iconWrapper,

@@ -12,16 +12,16 @@ import {
 } from "lucide-react";
 import ModuleCard from "@/components/ModuleCard";
 
-type Module = { title: string; icon: LucideIcon; href?: string };
+type Module = { title: string; icon: LucideIcon; href?: string; draft?: boolean };
 
-// Order matches the old system. Only "البيانات" is active for now.
+// Order matches the old system. "البيانات" is live; draft modules are UI only (no backend yet).
 const modules: Module[] = [
   { title: "موقف المشاريع", icon: Building2 },
   { title: "التمام اليومي", icon: CalendarCheck },
   { title: "البيانات", icon: Database, href: "/data/" },
-  { title: "العقود", icon: FileSignature },
-  { title: "سلفة + مستخلص", icon: ReceiptText },
-  { title: "الخامات", icon: Boxes },
+  { title: "العقود", icon: FileSignature, href: "/contracts/", draft: true },
+  { title: "سلفة + مستخلص", icon: ReceiptText, href: "/statements/", draft: true },
+  { title: "الخامات", icon: Boxes, href: "/materials/deducted/", draft: true },
   { title: "الجوابات", icon: Mail },
   { title: "المحاضر", icon: ClipboardList },
 ];
@@ -74,7 +74,7 @@ export default function HomePage() {
         <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6 lg:grid-cols-4">
           {modules.map((module) => (
             <li key={module.title}>
-              <ModuleCard title={module.title} icon={module.icon} href={module.href} />
+              <ModuleCard title={module.title} icon={module.icon} href={module.href} draft={module.draft} />
             </li>
           ))}
         </ul>
