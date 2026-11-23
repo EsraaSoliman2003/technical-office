@@ -199,12 +199,16 @@ export default function CompanyFormDialog({ company, onClose, onCreated }: Compa
     toast.error(failure?.status === 403 ? NO_PERMISSION_MESSAGE : getFailureMessage(failure));
   };
 
-  const showUploadError = (failure: ApiFailure | undefined) => {
-    const filesMessages = failure
-      ? Object.entries(failure.fieldErrors)
-          .filter(([key]) => key.toLowerCase() === "files")
-          .flatMap(([, messages]) => messages)
-      : [];
+  /** `sent`: the files of the failed request, in order (server keys `files[i]` index into it). */
+  const showUploadError = (failure: ApiFailure | undefined, sent: File[]) => {
+    const filesMessages: string[] = [];
+    for (const [key, messages] of Object.entries(failure?.fieldErrors ?? {})) {
+      // "files" (whole request) or "files[i]" / "files[i].…" (one file)
+      const match = /^files(?:\[(\d+)\])?(?:$|\.)/i.exec(key);
+      if (!match) continue;
+      const file = match[1] !== undefined ? sent[Number(match[1])] : undefined;
+      for (const message of messages) filesMessages.push(file ? `${file.name}: ${message}` : message);
+    }
     if (filesMessages.length > 0) setFilesError(filesMessages.join("\n"));
     const reason =
       failure?.status === 403 ? NO_PERMISSION_MESSAGE : filesMessages.length > 0 ? null : getFailureMessage(failure);
@@ -239,14 +243,11 @@ export default function CompanyFormDialog({ company, onClose, onCreated }: Compa
 
       if (pending.length > 0) {
         setProgress(0);
+        const sent = pending.map(({ file }) => file);
         try {
-          await uploadCompanyAttachments(
-            id,
-            pending.map(({ file }) => file),
-            setProgress
-          );
+          await uploadCompanyAttachments(id, sent, setProgress);
         } catch (error) {
-          showUploadError(isApiFailure(error) ? error : undefined);
+          showUploadError(isApiFailure(error) ? error : undefined, sent);
           return;
         } finally {
           setProgress(undefined);
