@@ -72,6 +72,9 @@ export default function CompanyFormDialog({ company, onClose, onCreated }: Compa
 
   // The company being edited; set after a create, so a failed upload can be retried as an edit.
   const [companyId, setCompanyId] = useState<string | null>(company?.id ?? null);
+  // Same id, read by onSubmit: set synchronously after the POST, so a submit that runs before the
+  // re-render (stale `companyId` = null) cannot create the company a second time.
+  const companyIdRef = useRef<string | null>(company?.id ?? null);
   // Last values saved on the server (skip the PUT when only files are added).
   const savedInputRef = useRef<CompanyInput | null>(
     company
@@ -209,7 +212,7 @@ export default function CompanyFormDialog({ company, onClose, onCreated }: Compa
     setUploadError(null);
     try {
       const input = toInput(values);
-      let id = companyId;
+      let id = companyIdRef.current;
 
       if (!id || !sameInput(input, savedInputRef.current)) {
         const result = id ? await updateCompany({ id, body: input }) : await createCompany(input);
@@ -220,6 +223,7 @@ export default function CompanyFormDialog({ company, onClose, onCreated }: Compa
         savedInputRef.current = input;
         if (!id) {
           id = result.data.id;
+          companyIdRef.current = id;
           setCompanyId(id);
           onCreated?.();
         }
