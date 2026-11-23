@@ -12,6 +12,10 @@
 export const LOOKUPS = [
   { resource: "agencies", title: "الجهات", fieldLabel: "الجهة" },
   { resource: "sectors", title: "القطاعات", fieldLabel: "القطاع" },
+  { resource: "materials", title: "الخامات", fieldLabel: "الخامة" },
+  { resource: "factories", title: "المصانع", fieldLabel: "المصنع" },
+  { resource: "mixers", title: "الخلاطات", fieldLabel: "الخلاطة" },
+  { resource: "transport-companies", title: "شركات النقل", fieldLabel: "شركة النقل" },
 ] as const;
 
 export type LookupConfig = (typeof LOOKUPS)[number];
