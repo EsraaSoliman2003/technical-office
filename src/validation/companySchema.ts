@@ -7,9 +7,21 @@ export function toLatinDigits(value: string): string {
     .replace(/[۰-۹]/g, (digit) => String(digit.charCodeAt(0) - 0x06f0));
 }
 
-/** Latin digits without spaces or dashes, e.g. "٠١٠ ١٢٣٤-٥٦٧٨" → "01012345678". */
+/**
+ * Characters the server strips from a mobile number before checking it:
+ * - whitespace,
+ * - invisible format characters (pasted from RTL text / phones): soft hyphen U+00AD, Arabic letter
+ *   mark U+061C, Mongolian vowel separator U+180E, zero-width chars and LRM/RLM U+200B–U+200F,
+ *   bidi embeddings U+202A–U+202E, word joiner/invisible operators U+2060–U+2064,
+ *   bidi isolates and deprecated format chars U+2066–U+206F, BOM U+FEFF,
+ * - dashes: "-", U+2010–U+2015, minus U+2212, small hyphen-minus U+FE63, fullwidth hyphen-minus U+FF0D.
+ */
+const MOBILE_STRIP =
+  /[\s­؜᠎​-‏‪-‮⁠-⁤⁦-⁯﻿\-‐-―−﹣－]/g;
+
+/** Latin digits without spaces, dashes or invisible marks, e.g. "٠١٠ ١٢٣٤-٥٦٧٨" → "01012345678". */
 export function normalizeMobile(value: string): string {
-  return toLatinDigits(value).replace(/[\s\-‐-―]/g, "");
+  return toLatinDigits(value).replace(MOBILE_STRIP, "");
 }
 
 /** Egyptian mobile: 010 / 011 / 012 / 015 + 8 digits. */
