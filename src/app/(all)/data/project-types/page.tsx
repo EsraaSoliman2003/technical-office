@@ -1,5 +1,5 @@
-import ProjectTypesPage from "@/features/project-types/ProjectTypesPage";
+import LookupPage from "@/components/lookup/LookupPage";
 
-export default function Page() {
-  return <ProjectTypesPage />;
+export default function ProjectTypesPage() {
+  return <LookupPage resource="project-types" />;
 }
