@@ -1,5 +1,5 @@
-import MaterialsPage from "@/features/materials/MaterialsPage";
+import LookupPage from "@/components/lookup/LookupPage";
 
-export default function Page() {
-  return <MaterialsPage />;
+export default function MaterialsPage() {
+  return <LookupPage resource="materials" />;
 }
