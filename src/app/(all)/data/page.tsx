@@ -59,17 +59,17 @@ const sections: DataSection[] = [
     title: "الشركات",
     items: [
       { title: "الشركات", icon: Building, href: "/data/companies/" },
-      { title: "شركات النقل", icon: Truck, draft: "/data/transport-companies/" },
+      { lookup: "transport-companies", icon: Truck },
     ],
   },
   {
     title: "الخامات",
     items: [
-      { title: "الخامات", icon: Boxes, draft: "/data/materials/" },
+      { lookup: "materials", icon: Boxes },
       { title: "خامات الشركات", icon: PackageCheck, draft: "/data/company-materials/" },
       { title: "خامات المشاريع", icon: PackageOpen, draft: "/data/project-materials/" },
-      { title: "المصانع", icon: Factory, draft: "/data/factories/" },
-      { title: "الخلطات", icon: FlaskConical, draft: "/data/mixers/" },
+      { lookup: "factories", icon: Factory },
+      { lookup: "mixers", icon: FlaskConical },
     ],
   },
   {
