@@ -159,9 +159,10 @@ export default function ProjectFormDialog({ project, onClose, onCreated }: Proje
   // ---- Save ----
   /** 400/409: under the fields and the الخامات rows; returns false if nothing could be shown. */
   const showFieldErrors = (failure: ApiFailure) => {
-    let shown = applyServerFieldErrors(failure, FORM_FIELDS, (field, message, focus) =>
+    const topLevelShown = applyServerFieldErrors(failure, FORM_FIELDS, (field, message, focus) =>
       form.setError(field, { type: "server", message }, { shouldFocus: focus })
     );
+    let shown = topLevelShown;
     const entries = Object.entries(failure.fieldErrors);
     // The list-level error first: setting "materials" replaces the whole entry, row errors are added after.
     const listMessages = entries.filter(([key]) => /^materials$/i.test(key)).flatMap(([, messages]) => messages);
@@ -169,13 +170,24 @@ export default function ProjectFormDialog({ project, onClose, onCreated }: Proje
       form.setError("materials", { type: "server", message: listMessages.join(" ") });
       shown = true;
     }
-    for (const [key, messages] of entries) {
-      const row = /^materials\[(\d+)\]\.(materialId|value)$/i.exec(key);
-      if (!row) continue;
-      const field = row[2].toLowerCase() === "value" ? "value" : "materialId";
-      form.setError(`materials.${Number(row[1])}.${field}`, { type: "server", message: messages.join(" ") });
+    // Row errors in screen order (row, then material before value); the first one gets focus
+    // unless a field above the materials already has it.
+    const rowErrors = entries
+      .flatMap(([key, messages]) => {
+        const row = /^materials\[(\d+)\]\.(materialId|value)$/i.exec(key);
+        if (!row) return [];
+        const field = row[2].toLowerCase() === "value" ? ("value" as const) : ("materialId" as const);
+        return [{ index: Number(row[1]), field, message: messages.join(" ") }];
+      })
+      .sort((a, b) => a.index - b.index || (a.field === b.field ? 0 : a.field === "materialId" ? -1 : 1));
+    rowErrors.forEach(({ index, field, message }, order) => {
+      form.setError(
+        `materials.${index}.${field}`,
+        { type: "server", message },
+        { shouldFocus: !topLevelShown && order === 0 }
+      );
       shown = true;
-    }
+    });
     return shown;
   };
 
