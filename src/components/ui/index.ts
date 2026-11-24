@@ -6,3 +6,4 @@ export { EmptyState } from "./EmptyState";
 export { Input } from "./Input";
 export { Modal, type ModalSize } from "./Modal";
 export { Spinner } from "./Spinner";
+export { Textarea } from "./Textarea";
