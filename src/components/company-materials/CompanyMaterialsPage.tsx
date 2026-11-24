@@ -1,29 +1,36 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Paperclip, Printer } from "lucide-react";
 import { skipToken } from "@reduxjs/toolkit/query";
-import { toast } from "sonner";
+import {
+  AttachmentCountButton,
+  LtrText,
+  NotesCell,
+  QuantityText,
+  TotalQuantity,
+  totalQuantityLabel,
+} from "@/components/list/cells";
 import { auditColumns } from "@/components/list/columns";
 import { useCanWrite } from "@/components/list/formHelpers";
 import ListPage, { ListSuspense } from "@/components/list/ListPage";
 import type { ListColumn } from "@/components/list/ListTable";
+import { OptionFilter } from "@/components/list/OptionFilter";
 import { useListState, type ListStateOptions } from "@/components/list/useListState";
-import { Button, Combobox } from "@/components/ui";
+import { filterName, waitingForOptions } from "@/components/options/useOptionList";
+import type { PrintColumn } from "@/components/print/PrintView";
+import { usePrintExport } from "@/components/print/usePrintExport";
 import { formatQuantity } from "@/lib/numbers";
-import { useAppDispatch } from "@/rtk/hooks";
 import {
   companyMaterialApi,
   useListCompanyMaterialsQuery,
   useRemoveCompanyMaterialMutation,
 } from "@/rtk/endpoints/companyMaterialApi";
+import { useAppDispatch } from "@/rtk/hooks";
 import type { CompanyMaterialFilters, CompanyMaterialItem, CompanyMaterialSortBy } from "@/types/companyMaterial";
-import { getFailureMessage, isApiFailure, NO_PERMISSION_MESSAGE, type ApiFailure } from "@/utils/apiFailure";
 import CompanyMaterialAttachmentsDialog from "./CompanyMaterialAttachmentsDialog";
 import CompanyMaterialFormDialog from "./CompanyMaterialFormDialog";
-import CompanyMaterialsPrintView, { type PrintData } from "./CompanyMaterialsPrintView";
 import { companyMaterialLabel } from "./labels";
-import { useOptionLists, type OptionList } from "./useOptionLists";
+import { useOptionLists } from "./useOptionLists";
 
 const SORT_COLUMNS: readonly CompanyMaterialSortBy[] = [
   "loadingPermitNumber",
@@ -35,64 +42,29 @@ const SORT_COLUMNS: readonly CompanyMaterialSortBy[] = [
   "updatedAt",
 ];
 
+/** The business columns for طباعة / PDF (no attachments / audit / actions). */
+const PRINT_COLUMNS: PrintColumn<CompanyMaterialItem>[] = [
+  {
+    header: "رقم اذن التحميل",
+    cell: (row) => <LtrText value={row.loadingPermitNumber} />,
+  },
+  { header: "اسم المشروع", cell: (row) => row.projectName },
+  { header: "الخامة", cell: (row) => row.materialName },
+  { header: "الشركة المنفذة", cell: (row) => row.companyName },
+  {
+    header: "الكمية",
+    cell: (row) => <span dir="ltr">{formatQuantity(row.quantity)}</span>,
+  },
+  { header: "المهندس المستلم", cell: (row) => row.receivingEngineer || "—" },
+  { header: "ملاحظات", cell: (row) => row.notes || "—", multiline: true },
+];
+
 type DialogState = { mode: "create" } | { mode: "edit"; item: CompanyMaterialItem } | null;
-
-/** A clearable dropdown filter in the toolbar (empty = all). */
-function OptionFilter({
-  label,
-  allLabel,
-  list,
-  value,
-  onChange,
-}: {
-  label: string;
-  allLabel: string;
-  list: OptionList;
-  value: string | undefined;
-  onChange: (value: string | null) => void;
-}) {
-  return (
-    <Combobox
-      aria-label={label}
-      placeholder={allLabel}
-      clearable
-      options={list.options}
-      value={value ?? ""}
-      onChange={(next) => onChange(next || null)}
-      loading={list.loading}
-      error={list.loadError ? `تعذر تحميل قائمة ${label}` : undefined}
-      className="w-full sm:w-56"
-    />
-  );
-}
-
-/**
- * `/export` failure → toast text. The API reports "more than 5000 rows" as a 400 with
- * `errors.search`; any other 400 shows its first field error (or the general message).
- */
-function exportErrorMessage(failure: ApiFailure | undefined) {
-  if (failure?.status === 403) return NO_PERMISSION_MESSAGE;
-  if (failure?.status === 400) {
-    const entries = Object.entries(failure.fieldErrors);
-    if (entries.some(([key]) => key.toLowerCase() === "search")) {
-      return "عدد السجلات كبير جدًا للطباعة (الحد الأقصى 5000 سجل). ضيّق نطاق البحث أو الفلاتر ثم حاول مرة أخرى.";
-    }
-    const first = entries.flatMap(([, messages]) => messages)[0];
-    if (first) return first;
-  }
-  return getFailureMessage(failure);
-}
-
-const quantityText = (value: number) => (
-  <span dir="ltr" className="tabular-nums">
-    {formatQuantity(value)}
-  </span>
-);
 
 function CompanyMaterialsPageContent() {
   const canWrite = useCanWrite();
-  const lists = useOptionLists();
-  const { projects, materials, companies } = lists;
+  const dispatch = useAppDispatch();
+  const { projects, materials, companies } = useOptionLists();
 
   // Unknown ids in the URL are dropped once the option lists are loaded.
   const listOptions = useMemo<ListStateOptions<CompanyMaterialSortBy>>(
@@ -102,7 +74,11 @@ function CompanyMaterialsPageContent() {
       defaultSortBy: "createdAt",
       defaultSortDir: "desc",
       ascendingFirst: ["loadingPermitNumber", "projectName", "materialName", "companyName"],
-      filterValues: { projectId: projects.ids, materialId: materials.ids, companyId: companies.ids },
+      filterValues: {
+        projectId: projects.ids,
+        materialId: materials.ids,
+        companyId: companies.ids,
+      },
     }),
     [projects.ids, materials.ids, companies.ids]
   );
@@ -112,15 +88,14 @@ function CompanyMaterialsPageContent() {
     materialId: list.filters.materialId,
     companyId: list.filters.companyId,
   };
-  // A filter id is only checked once its option list has loaded (an unknown one is then dropped):
-  // wait for that instead of querying with a deleted id first. (If a list fails to load, query anyway.)
-  const waitingForOptions =
-    (filters.projectId && projects.loading) ||
-    (filters.materialId && materials.loading) ||
-    (filters.companyId && companies.loading);
-  const listQuery = useListCompanyMaterialsQuery(waitingForOptions ? skipToken : { ...list.params, ...filters });
+  const waiting = waitingForOptions([
+    [filters.projectId, projects],
+    [filters.materialId, materials],
+    [filters.companyId, companies],
+  ]);
+  const listQuery = useListCompanyMaterialsQuery(waiting ? skipToken : { ...list.params, ...filters });
   // Show the loading skeleton while waiting.
-  const query = { ...listQuery, isFetching: listQuery.isFetching || Boolean(waitingForOptions) };
+  const query = { ...listQuery, isFetching: listQuery.isFetching || waiting };
   const [removeRecord] = useRemoveCompanyMaterialMutation();
   const [dialog, setDialog] = useState<DialogState>(null);
   const [viewing, setViewing] = useState<CompanyMaterialItem | null>(null);
@@ -132,7 +107,7 @@ function CompanyMaterialsPageContent() {
         header: "رقم اذن التحميل",
         sortKey: "loadingPermitNumber",
         className: "whitespace-nowrap text-foreground",
-        cell: (item) => (item.loadingPermitNumber ? <span dir="ltr">{item.loadingPermitNumber}</span> : "—"),
+        cell: (item) => <LtrText value={item.loadingPermitNumber} />,
       },
       {
         key: "projectName",
@@ -160,7 +135,7 @@ function CompanyMaterialsPageContent() {
         header: "الكمية",
         sortKey: "quantity",
         className: "whitespace-nowrap text-foreground",
-        cell: (item) => quantityText(item.quantity),
+        cell: (item) => <QuantityText value={item.quantity} />,
       },
       {
         key: "receivingEngineer",
@@ -172,90 +147,78 @@ function CompanyMaterialsPageContent() {
         key: "notes",
         header: "ملاحظات",
         className: "text-muted-foreground",
-        // Two lines; the full text is in the tooltip (and read in full by screen readers).
-        cell: (item) =>
-          item.notes ? (
-            <p title={item.notes} className="line-clamp-2 max-w-64 whitespace-pre-line">
-              {item.notes}
-            </p>
-          ) : (
-            "—"
-          ),
+        cell: (item) => <NotesCell value={item.notes} />,
       },
       {
         key: "attachments",
         header: "البوليصة",
         className: "py-2 whitespace-nowrap text-muted-foreground",
-        cell: (item) =>
-          item.attachmentCount > 0 ? (
-            <button
-              type="button"
-              onClick={() => setViewing(item)}
-              aria-label={`عرض البوليصة: ${companyMaterialLabel(item)} (${item.attachmentCount})`}
-              title="عرض البوليصة"
-              className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs font-semibold text-foreground hover:border-primary/40 hover:bg-primary-soft hover:text-primary-text"
-            >
-              <Paperclip size={13} aria-hidden="true" />
-              <span className="tabular-nums">{item.attachmentCount}</span>
-            </button>
-          ) : (
-            "—"
-          ),
+        cell: (item) => (
+          <AttachmentCountButton
+            count={item.attachmentCount}
+            label={`عرض البوليصة: ${companyMaterialLabel(item)}`}
+            title="عرض البوليصة"
+            onClick={() => setViewing(item)}
+          />
+        ),
       },
-      ...auditColumns<CompanyMaterialItem, CompanyMaterialSortBy>({ createdAt: "createdAt", updatedAt: "updatedAt" }),
+      ...auditColumns<CompanyMaterialItem, CompanyMaterialSortBy>({
+        createdAt: "createdAt",
+        updatedAt: "updatedAt",
+      }),
     ],
     [setViewing]
   );
 
-  const totalQuantity = query.currentData?.totalQuantity;
-  // From the option list, else (it failed to load) from the rows, which all match the filter.
-  const materialName = filters.materialId
-    ? (materials.nameOf(filters.materialId) ?? query.currentData?.items[0]?.materialName)
-    : undefined;
+  const materialName = filterName(filters.materialId, materials, query.currentData?.items, (row) => row.materialName);
 
   // ---- طباعة / PDF: all rows for the current filters and sort → print view ----
-  const dispatch = useAppDispatch();
-  const [exporting, setExporting] = useState(false);
-  const [printData, setPrintData] = useState<PrintData | null>(null);
-
-  const print = async () => {
-    if (exporting) return;
-    setExporting(true);
-    let result;
-    try {
-      // One-off fetch: always fresh, and not subscribed, so the rows (up to 5000) are not kept in
-      // the store (keepUnusedDataFor: 0); the print view holds its own copy until it closes.
-      result = await dispatch(
-        companyMaterialApi.endpoints.exportCompanyMaterials.initiate(
-          { search: list.params.search, sortBy: list.sortBy, sortDir: list.sortDir, ...filters },
-          { subscribe: false, forceRefetch: true }
-        )
-      );
-    } finally {
-      setExporting(false);
-    }
-    if (result.error || !result.data) {
-      toast.error(exportErrorMessage(isApiFailure(result.error) ? result.error : undefined));
-      return;
-    }
-    if (result.data.length === 0) {
-      toast.error("لا توجد بيانات للطباعة");
-      return;
-    }
-    // A filtered id's name: from its option list, else (list not loaded) from the rows, which all match it.
-    const rows = result.data;
-    const first = rows[0];
-    const projectName = filters.projectId ? (projects.nameOf(filters.projectId) ?? first.projectName) : undefined;
-    const printMaterialName = filters.materialId ? (materialName ?? first.materialName) : undefined;
-    const companyName = filters.companyId ? (companies.nameOf(filters.companyId) ?? first.companyName) : undefined;
-    const active = [
-      { label: "المشروع", value: projectName },
-      { label: "الخامة", value: printMaterialName },
-      { label: "الشركة المنفذة", value: companyName },
-      { label: "البحث", value: list.search ? `"${list.search}"` : undefined },
-    ].filter((filter): filter is { label: string; value: string } => Boolean(filter.value));
-    setPrintData({ rows, filters: active, materialName: printMaterialName, printedAt: new Date().toISOString() });
-  };
+  const printer = usePrintExport<CompanyMaterialItem>();
+  const print = () =>
+    printer.print(
+      // One-off, unsubscribed fetch: the rows are not kept in the store.
+      () =>
+        dispatch(
+          companyMaterialApi.endpoints.exportCompanyMaterials.initiate(
+            {
+              search: list.params.search,
+              sortBy: list.sortBy,
+              sortDir: list.sortDir,
+              ...filters,
+            },
+            { subscribe: false, forceRefetch: true }
+          )
+        ),
+      (rows, printedAt) => {
+        const printMaterialName = filterName(filters.materialId, materials, rows, (row) => row.materialName);
+        const active = [
+          {
+            label: "المشروع",
+            value: filterName(filters.projectId, projects, rows, (row) => row.projectName),
+          },
+          { label: "الخامة", value: printMaterialName },
+          {
+            label: "الشركة المنفذة",
+            value: filterName(filters.companyId, companies, rows, (row) => row.companyName),
+          },
+          {
+            label: "البحث",
+            value: list.search ? `"${list.search}"` : undefined,
+          },
+        ].filter((filter): filter is { label: string; value: string } => Boolean(filter.value));
+        return {
+          title: "خامات الشركات",
+          filters: active,
+          columns: PRINT_COLUMNS,
+          rows,
+          total: {
+            label: totalQuantityLabel(printMaterialName),
+            value: formatQuantity(rows.reduce((sum, row) => sum + row.quantity, 0)),
+          },
+          printedAt,
+        };
+      }
+    );
 
   return (
     <ListPage
@@ -270,12 +233,7 @@ function CompanyMaterialsPageContent() {
       onEdit={(item) => setDialog({ mode: "edit", item })}
       onDelete={(item) => removeRecord(item.id)}
       searchPlaceholder="بحث شامل"
-      headerActions={
-        <Button variant="secondary" onClick={print} loading={exporting}>
-          {!exporting && <Printer size={18} aria-hidden="true" />}
-          طباعة / PDF
-        </Button>
-      }
+      headerActions={printer.button(print)}
       toolbar={
         <>
           <OptionFilter
@@ -301,14 +259,7 @@ function CompanyMaterialsPageContent() {
           />
         </>
       }
-      summary={
-        totalQuantity !== undefined && (
-          <p className="text-sm text-muted-foreground">
-            إجمالي الكمية{materialName ? ` (${materialName})` : ""}:{" "}
-            <span className="font-semibold text-foreground">{quantityText(totalQuantity)}</span>
-          </p>
-        )
-      }
+      summary={<TotalQuantity value={query.currentData?.totalQuantity} materialName={materialName} />}
     >
       {dialog && (
         <CompanyMaterialFormDialog
@@ -323,10 +274,7 @@ function CompanyMaterialsPageContent() {
       {viewing && (
         <CompanyMaterialAttachmentsDialog item={viewing} canWrite={canWrite} onClose={() => setViewing(null)} />
       )}
-      {printData && (
-        // Keyed: printing again (even if the last afterprint never came) remounts and prints.
-        <CompanyMaterialsPrintView key={printData.printedAt} data={printData} onDone={() => setPrintData(null)} />
-      )}
+      {printer.view}
     </ListPage>
   );
 }

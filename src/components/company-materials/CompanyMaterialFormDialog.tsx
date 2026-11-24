@@ -37,7 +37,8 @@ import {
   type CompanyMaterialFormValues,
   type CompanyMaterialSchemaType,
 } from "@/validation/companyMaterialSchema";
-import { useOptionLists, type OptionList } from "./useOptionLists";
+import type { OptionList } from "@/components/options/useOptionList";
+import { useOptionLists } from "./useOptionLists";
 
 type CompanyMaterialFormDialogProps = {
   /** Row to edit; omit to add a new one. */

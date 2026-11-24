@@ -1,4 +1,4 @@
-import type { NamedOption } from "@/types/companyMaterial";
+import type { NamedOption } from "@/types/options";
 import type { PagedResult } from "@/types/paged";
 import type {
   MaterialOption,

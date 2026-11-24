@@ -51,6 +51,3 @@ export type SaveCompanyMaterialRequest = {
   receivingEngineer: string | null;
   notes: string | null;
 };
-
-/** `{ id, name }` from `/api/{projects|materials|companies}/options`. */
-export type NamedOption = { id: string; name: string };
