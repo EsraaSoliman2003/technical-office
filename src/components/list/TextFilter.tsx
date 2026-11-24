@@ -29,12 +29,13 @@ export function TextFilter({ label, value, onChange, ltr = false }: TextFilterPr
   const debounced = useDebouncedValue(text, 400);
   const lastDebounced = useRef(debounced);
 
-  // Follow the URL when it changes from outside (back/forward, "show newest"); our own updates
-  // already match the typed text. (State adjusted during render, like the search box.)
+  // Follow the URL when it changes from outside (back/forward, "show newest"). Compared with the last
+  // value applied by typing (debounced), not the live text: typing that continued after the debounce
+  // is kept, and an outside change replaces it. (State adjusted during render, like the search box.)
   const [prevApplied, setPrevApplied] = useState(applied);
   if (applied !== prevApplied) {
     setPrevApplied(applied);
-    if (applied !== normalize(text)) setText(applied);
+    if (applied !== normalize(debounced)) setText(applied);
   }
 
   const apply = (next: string) => {
