@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useState, type KeyboardEvent, type Ref } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 export type ComboboxOption = { value: string; label: string; disabled?: boolean };
@@ -22,6 +22,10 @@ type ComboboxProps = {
   loading?: boolean;
   /** Shown when no option matches the typed text. */
   emptyText?: string;
+  /** Shows a "مسح" button while something is selected (e.g. an optional filter). */
+  clearable?: boolean;
+  /** Marks the label with a red star (validation stays in the form). */
+  required?: boolean;
   inputRef?: Ref<HTMLInputElement>;
   className?: string;
 };
@@ -67,6 +71,8 @@ export function Combobox({
   disabled = false,
   loading = false,
   emptyText = "لا توجد نتائج",
+  clearable = false,
+  required = false,
   inputRef,
   className,
 }: ComboboxProps) {
@@ -161,12 +167,18 @@ export function Combobox({
 
   const activeId = open && activeIndex >= 0 ? optionId(activeIndex) : undefined;
   const message = error;
+  const showClear = clearable && !disabled && value !== "";
 
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
       {label && (
         <label htmlFor={inputId} className="text-sm font-semibold text-foreground">
           {label}
+          {required && (
+            <span className="ms-1 text-danger" aria-hidden="true">
+              *
+            </span>
+          )}
         </label>
       )}
       <div className="relative">
@@ -198,8 +210,10 @@ export function Combobox({
             commitTyped();
             onBlur?.();
           }}
+          aria-required={required || undefined}
           className={cn(
-            "h-11 w-full rounded-lg border bg-surface ps-3 pe-9 text-sm text-foreground shadow-sm",
+            "h-11 w-full rounded-lg border bg-surface ps-3 text-sm text-foreground shadow-sm",
+            showClear ? "pe-16" : "pe-9",
             "focus:border-primary focus:ring-2 focus:ring-primary/20",
             "disabled:cursor-not-allowed disabled:opacity-60",
             error ? "border-danger focus:border-danger focus:ring-danger/20" : "border-border"
@@ -210,6 +224,23 @@ export function Combobox({
           aria-hidden="true"
           className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
         />
+        {showClear && (
+          <button
+            type="button"
+            onClick={() => {
+              onChange("");
+              setQuery(null);
+              close();
+              // The button disappears: keep focus in the field.
+              document.getElementById(inputId)?.focus();
+            }}
+            aria-label={`مسح ${label ?? ariaLabel ?? "الاختيار"}`}
+            title="مسح"
+            className="absolute top-1/2 left-8 -translate-y-1/2 rounded-md p-1 text-muted-foreground hover:bg-surface-muted hover:text-foreground"
+          >
+            <X size={14} aria-hidden="true" />
+          </button>
+        )}
 
         {open && (
           <ul
