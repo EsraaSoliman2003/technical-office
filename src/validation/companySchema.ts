@@ -1,11 +1,5 @@
 import { z } from "zod";
-
-/** Arabic-Indic (٠-٩) and Persian (۰-۹) digits → Latin digits. */
-export function toLatinDigits(value: string): string {
-  return value
-    .replace(/[٠-٩]/g, (digit) => String(digit.charCodeAt(0) - 0x0660))
-    .replace(/[۰-۹]/g, (digit) => String(digit.charCodeAt(0) - 0x06f0));
-}
+import { toLatinDigits } from "@/lib/numbers";
 
 /**
  * Characters the server strips from a mobile number before checking it:
