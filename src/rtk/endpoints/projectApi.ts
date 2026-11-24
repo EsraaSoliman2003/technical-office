@@ -1,3 +1,4 @@
+import type { NamedOption } from "@/types/companyMaterial";
 import type { PagedResult } from "@/types/paged";
 import type {
   MaterialOption,
@@ -65,6 +66,12 @@ export const projectApi = api.enhanceEndpoints({ addTagTypes: ["Project", "Looku
       query: () => ({ url: "materials/options" }),
       providesTags: [materialsLookupTag],
     }),
+
+    /** `{ id, name }` of all projects (dropdowns elsewhere, e.g. خامات الشركات). */
+    projectOptions: build.query<NamedOption[], void>({
+      query: () => ({ url: `${RESOURCE}/options` }),
+      providesTags: [listTag],
+    }),
   }),
 });
 
@@ -76,6 +83,7 @@ export const {
   useRemoveProjectMutation,
   useRemoveProjectAttachmentMutation,
   useMaterialOptionsQuery,
+  useProjectOptionsQuery,
 } = projectApi;
 
 /** Cache tags to invalidate after uploading attachments to a project. */
@@ -83,3 +91,6 @@ export const projectAttachmentTags = (projectId: string) => [listTag, itemTag(pr
 
 /** Attachments endpoint of a project (upload: POST with `?category=`; one file: `${url}/{attachmentId}`). */
 export const projectAttachmentsUrl = (projectId: string) => `${RESOURCE}/${projectId}/attachments`;
+
+/** Cache tag of the projects list (also invalidated when a project is renamed). */
+export const projectListTag = listTag;

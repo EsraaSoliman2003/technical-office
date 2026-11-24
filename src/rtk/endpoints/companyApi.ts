@@ -1,4 +1,5 @@
 import type { CompanyDto, CompanyInput, CompanyListItemDto, CompanyListParams } from "@/types/company";
+import type { NamedOption } from "@/types/companyMaterial";
 import type { PagedResult } from "@/types/paged";
 import { api } from "../api";
 
@@ -45,6 +46,12 @@ export const companyApi = api.enhanceEndpoints({ addTagTypes: ["Company"] }).inj
       // The list shows the attachment count, the company holds the attachments.
       invalidatesTags: (_result, error, { companyId }) => (error ? [] : [listTag, itemTag(companyId)]),
     }),
+
+    /** `{ id, name }` of all companies (dropdowns elsewhere, e.g. خامات الشركات). */
+    companyOptions: build.query<NamedOption[], void>({
+      query: () => ({ url: `${RESOURCE}/options` }),
+      providesTags: [listTag],
+    }),
   }),
 });
 
@@ -55,6 +62,7 @@ export const {
   useUpdateCompanyMutation,
   useRemoveCompanyMutation,
   useRemoveCompanyAttachmentMutation,
+  useCompanyOptionsQuery,
 } = companyApi;
 
 /** Cache tags to invalidate after uploading attachments to a company. */
@@ -62,3 +70,6 @@ export const companyAttachmentTags = (companyId: string) => [listTag, itemTag(co
 
 /** Attachments endpoint of a company (upload: POST; one file: `${url}/{attachmentId}`). */
 export const companyAttachmentsUrl = (companyId: string) => `${RESOURCE}/${companyId}/attachments`;
+
+/** Cache tag of the companies list (also invalidated when a company is renamed). */
+export const companyListTag = listTag;
