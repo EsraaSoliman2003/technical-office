@@ -66,7 +66,7 @@ const sections: DataSection[] = [
     title: "الخامات",
     items: [
       { lookup: "materials", icon: Boxes },
-      { title: "خامات الشركات", icon: PackageCheck, draft: "/data/company-materials/" },
+      { title: "خامات الشركات", icon: PackageCheck, href: "/data/company-materials/" },
       { title: "خامات المشاريع", icon: PackageOpen, draft: "/data/project-materials/" },
       { lookup: "factories", icon: Factory },
       { lookup: "mixers", icon: FlaskConical },
