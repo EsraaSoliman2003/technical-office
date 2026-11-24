@@ -13,8 +13,11 @@ export type ListStateOptions<TSortBy extends string> = {
   defaultSortDir: SortDir;
   /** Columns whose first click sorts A→Z (text); the others start newest first. */
   ascendingFirst?: readonly TSortBy[];
-  /** Extra query-string filters (e.g. `["status"]` → `?status=`); changing one resets to page 1. */
-  filterKeys?: readonly string[];
+  /**
+   * Extra query-string filters with their allowed values (e.g. `{ status: ["Study", ...] }` → `?status=`).
+   * Changing one resets to page 1; an unknown value is removed from the URL and ignored.
+   */
+  filterValues?: Readonly<Record<string, readonly string[]>>;
 };
 
 export type ListState<TSortBy extends string> = {
@@ -33,13 +36,13 @@ export type ListState<TSortBy extends string> = {
   toggleSort: (column: TSortBy) => void;
   /** After a create: clear search, page 1, default sort (createdAt desc) → the new row is on top. */
   showNewest: () => void;
-  /** Current values of `filterKeys` (missing = no filter). */
+  /** Current (valid) values of `filterValues` keys (missing = no filter). */
   filters: Record<string, string | undefined>;
   /** Sets (or clears with null) a filter and goes to page 1. */
   setFilter: (key: string, value: string | null) => void;
 };
 
-const NO_FILTERS: readonly string[] = [];
+const NO_FILTERS: Readonly<Record<string, readonly string[]>> = {};
 
 function parsePage(value: string | null) {
   const page = Number(value);
@@ -57,7 +60,7 @@ export function useListState<TSortBy extends string>({
   defaultSortBy,
   defaultSortDir,
   ascendingFirst = [],
-  filterKeys = NO_FILTERS,
+  filterValues = NO_FILTERS,
 }: ListStateOptions<TSortBy>): ListState<TSortBy> {
   const router = useRouter();
   const pathname = usePathname() ?? "/";
@@ -125,9 +128,22 @@ export function useListState<TSortBy extends string>({
 
   // ---- Filters (?{key}=) ----
   const filters = useMemo(
-    () => Object.fromEntries(filterKeys.map((key) => [key, searchParams.get(key) || undefined])),
-    [filterKeys, searchParams]
+    () =>
+      Object.fromEntries(
+        Object.entries(filterValues).map(([key, allowed]) => {
+          const value = searchParams.get(key);
+          return [key, value && allowed.includes(value) ? value : undefined];
+        })
+      ),
+    [filterValues, searchParams]
   );
+
+  // Drop unknown filter values from the URL (e.g. a hand-edited `?status=foo`).
+  useEffect(() => {
+    const invalid = Object.keys(filterValues).filter((key) => searchParams.has(key) && !filters[key]);
+    if (invalid.length > 0) updateQuery(Object.fromEntries(invalid.map((key) => [key, null])));
+  }, [filterValues, filters, searchParams, updateQuery]);
+
   const setFilter = useCallback(
     (key: string, value: string | null) => updateQuery({ [key]: value, page: null }),
     [updateQuery]
@@ -141,9 +157,9 @@ export function useListState<TSortBy extends string>({
       page: null,
       sortBy: null,
       sortDir: null,
-      ...Object.fromEntries(filterKeys.map((key) => [key, null])),
+      ...Object.fromEntries(Object.keys(filterValues).map((key) => [key, null])),
     });
-  }, [updateQuery, filterKeys]);
+  }, [updateQuery, filterValues]);
 
   const params = useMemo<ListParams<TSortBy>>(
     () => ({ search: urlSearch || undefined, page, pageSize, sortBy, sortDir }),

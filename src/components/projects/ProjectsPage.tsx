@@ -33,7 +33,7 @@ const LIST_OPTIONS: ListStateOptions<ProjectSortBy> = {
   defaultSortBy: "createdAt",
   defaultSortDir: "desc",
   ascendingFirst: ["name"],
-  filterKeys: ["status"],
+  filterValues: { status: PROJECT_STATUSES },
 };
 
 const MAX_VISIBLE_MATERIALS = 3;
