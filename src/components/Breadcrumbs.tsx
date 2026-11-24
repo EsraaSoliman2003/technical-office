@@ -10,8 +10,8 @@ const SEGMENT_LABELS: Record<string, string> = {
   data: "البيانات",
   ...Object.fromEntries(LOOKUPS.map((lookup) => [lookup.resource, lookup.title])),
   companies: "الشركات",
-  // UI drafts (not connected to the backend yet)
   projects: "المشاريع",
+  // UI drafts (not connected to the backend yet)
   "company-materials": "خامات الشركات",
   "project-materials": "خامات المشاريع",
   "contract-report": "تقرير العقود",
