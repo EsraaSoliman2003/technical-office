@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Paperclip, Printer } from "lucide-react";
+import { skipToken } from "@reduxjs/toolkit/query";
 import { toast } from "sonner";
 import { auditColumns } from "@/components/list/columns";
 import { useCanWrite } from "@/components/list/formHelpers";
@@ -110,7 +111,15 @@ function CompanyMaterialsPageContent() {
     materialId: list.filters.materialId,
     companyId: list.filters.companyId,
   };
-  const query = useListCompanyMaterialsQuery({ ...list.params, ...filters });
+  // A filter id is only checked once its option list has loaded (an unknown one is then dropped):
+  // wait for that instead of querying with a deleted id first. (If a list fails to load, query anyway.)
+  const waitingForOptions =
+    (filters.projectId && projects.loading) ||
+    (filters.materialId && materials.loading) ||
+    (filters.companyId && companies.loading);
+  const listQuery = useListCompanyMaterialsQuery(waitingForOptions ? skipToken : { ...list.params, ...filters });
+  // Show the loading skeleton while waiting.
+  const query = { ...listQuery, isFetching: listQuery.isFetching || Boolean(waitingForOptions) };
   const [removeRecord] = useRemoveCompanyMaterialMutation();
   const [dialog, setDialog] = useState<DialogState>(null);
   const [viewing, setViewing] = useState<CompanyMaterialItem | null>(null);
@@ -198,7 +207,10 @@ function CompanyMaterialsPageContent() {
   );
 
   const totalQuantity = query.currentData?.totalQuantity;
-  const materialName = materials.nameOf(filters.materialId);
+  // From the option list, else (it failed to load) from the rows, which all match the filter.
+  const materialName = filters.materialId
+    ? (materials.nameOf(filters.materialId) ?? query.currentData?.items[0]?.materialName)
+    : undefined;
 
   // ---- طباعة / PDF: all rows for the current filters and sort → print view ----
   const [exportRows] = useLazyExportCompanyMaterialsQuery();
