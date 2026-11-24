@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState, type KeyboardEvent, type Ref } from "react";
+import { useEffect, useId, useMemo, useState, type KeyboardEvent, type Ref } from "react";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/cn";
 
@@ -37,6 +37,19 @@ function normalize(text: string) {
     .trim();
 }
 
+function filterOptions(options: ComboboxOption[], query: string | null) {
+  const needle = query ? normalize(query) : "";
+  return needle ? options.filter((option) => normalize(option.label).includes(needle)) : options;
+}
+
+/** First enabled option from `from` in direction `step`, or -1. */
+function findEnabled(list: ComboboxOption[], from: number, step: 1 | -1) {
+  for (let index = from; index >= 0 && index < list.length; index += step) {
+    if (!list[index].disabled) return index;
+  }
+  return -1;
+}
+
 /**
  * Text input with a filtered option list (ARIA combobox). Type to filter, ↑/↓ to move,
  * Enter to choose, Esc to close (without closing the dialog). Leaving the field with text that
@@ -68,17 +81,16 @@ export function Combobox({
   const [activeIndex, setActiveIndex] = useState(-1);
 
   const selected = options.find((option) => option.value === value);
-  const filtered = useMemo(() => {
-    const needle = query ? normalize(query) : "";
-    return needle ? options.filter((option) => normalize(option.label).includes(needle)) : options;
-  }, [options, query]);
+  const filtered = useMemo(() => filterOptions(options, query), [options, query]);
+  const firstEnabled = (from: number, step: 1 | -1) => findEnabled(filtered, from, step);
+  const optionId = (index: number) => `${id}-option-${index}`;
 
-  const firstEnabled = (from: number, step: 1 | -1) => {
-    for (let index = from; index >= 0 && index < filtered.length; index += step) {
-      if (!filtered[index].disabled) return index;
+  // Keep the highlighted option visible while moving with the arrow keys.
+  useEffect(() => {
+    if (open && activeIndex >= 0) {
+      document.getElementById(`${id}-option-${activeIndex}`)?.scrollIntoView({ block: "nearest" });
     }
-    return -1;
-  };
+  }, [id, open, activeIndex]);
 
   const openList = () => {
     if (disabled) return;
@@ -127,9 +139,10 @@ export function Combobox({
         break;
       }
       case "Enter": {
-        if (open && activeIndex >= 0 && filtered[activeIndex]) {
-          event.preventDefault(); // choose, don't submit the form
-          choose(filtered[activeIndex]);
+        // While the list is open, Enter belongs to the list: never submit the form.
+        if (open) {
+          event.preventDefault();
+          if (activeIndex >= 0 && filtered[activeIndex]) choose(filtered[activeIndex]);
         }
         break;
       }
@@ -146,7 +159,7 @@ export function Combobox({
     }
   };
 
-  const activeId = open && activeIndex >= 0 ? `${id}-option-${activeIndex}` : undefined;
+  const activeId = open && activeIndex >= 0 ? optionId(activeIndex) : undefined;
   const message = error;
 
   return (
@@ -165,7 +178,7 @@ export function Combobox({
           autoComplete="off"
           aria-label={label ? undefined : ariaLabel}
           aria-expanded={open}
-          aria-controls={listId}
+          aria-controls={open ? listId : undefined}
           aria-autocomplete="list"
           aria-activedescendant={activeId}
           aria-invalid={error ? true : undefined}
@@ -174,9 +187,10 @@ export function Combobox({
           disabled={disabled}
           value={query ?? selected?.label ?? ""}
           onChange={(event) => {
-            setQuery(event.target.value);
+            const text = event.target.value;
+            setQuery(text);
             setOpen(true);
-            setActiveIndex(0);
+            setActiveIndex(findEnabled(filterOptions(options, text), 0, 1));
           }}
           onClick={() => (open ? close() : openList())}
           onKeyDown={handleKeyDown}
@@ -202,6 +216,8 @@ export function Combobox({
             id={listId}
             role="listbox"
             aria-label={label ?? ariaLabel}
+            // preventDefault on mousedown keeps focus in the input (option clicks and the scrollbar).
+            onMouseDown={(event) => event.preventDefault()}
             className="absolute inset-x-0 top-full z-20 mt-1 max-h-56 overflow-y-auto rounded-lg border border-border bg-surface py-1 shadow-lg"
           >
             {loading ? (
@@ -212,15 +228,11 @@ export function Combobox({
               filtered.map((option, index) => (
                 <li
                   key={option.value}
-                  id={`${id}-option-${index}`}
+                  id={optionId(index)}
                   role="option"
                   aria-selected={option.value === value}
                   aria-disabled={option.disabled || undefined}
-                  // mousedown + preventDefault keeps focus in the input.
-                  onMouseDown={(event) => {
-                    event.preventDefault();
-                    choose(option);
-                  }}
+                  onClick={() => choose(option)}
                   onMouseEnter={() => !option.disabled && setActiveIndex(index)}
                   className={cn(
                     "cursor-pointer px-3 py-2 text-sm",
