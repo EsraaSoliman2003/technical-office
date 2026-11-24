@@ -71,7 +71,9 @@ src/
   components/          shell, guards, module cards, ui/ (Button, Input, Modal, ...)
     list/              reusable list screen: URL list state, page shell, table with columns + row actions
     lookup/            name-only lookup screen (built on list/)
+    attachments/       shared attachment upload/view/delete pieces (Companies, Projects)
     companies/         الشركات screen with attachments (built on list/)
+    projects/          المشاريع screen: status filter, materials rows, attachments per category
   lib/                 axios, runtime config, session, theme, lookups list
   rtk/                 store, base API (api.ts), endpoints/, slices/
   types/               API types (auth, lookups, paged results)
