@@ -1,11 +1,12 @@
 "use client";
 
+import { useId } from "react";
 import { Controller, type Control, type FieldPath, type FieldValues } from "react-hook-form";
 import { X } from "lucide-react";
 import type { OptionList } from "@/components/options/useOptionList";
 import { Button, Combobox, Input } from "@/components/ui";
 import { cn } from "@/lib/cn";
-import { checkDecimal, formatQuantity, parseDecimal } from "@/lib/numbers";
+import { checkDecimal, formatAmount, formatQuantity, parseDecimal } from "@/lib/numbers";
 
 /** `TOut`: the validated values (a schema with transforms makes them differ from the field values). */
 type FieldProps<TValues extends FieldValues, TOut extends FieldValues> = {
@@ -98,14 +99,20 @@ export function DateField<TValues extends FieldValues, TOut extends FieldValues 
   );
 }
 
-/** الكمية: decimal text (Arabic-Indic digits accepted), shown as "92.300" after leaving the field. */
-export function QuantityField<TValues extends FieldValues, TOut extends FieldValues = TValues>({
+/**
+ * A decimal typed as text (Arabic-Indic digits accepted, ltr), formatted when leaving the field:
+ * 2 decimals → "220,000,000.00", 3 decimals → "92.300" (only when the value is valid).
+ */
+export function DecimalField<TValues extends FieldValues, TOut extends FieldValues = TValues>({
   control,
   name,
   label,
+  decimals,
+  required = false,
   disabled,
   error,
-}: FieldProps<TValues, TOut>) {
+}: FieldProps<TValues, TOut> & { decimals: 2 | 3; required?: boolean }) {
+  const format = decimals === 3 ? formatQuantity : formatAmount;
   return (
     <Controller
       control={control}
@@ -113,7 +120,7 @@ export function QuantityField<TValues extends FieldValues, TOut extends FieldVal
       render={({ field }) => (
         <Input
           label={label}
-          required
+          required={required}
           dir="ltr"
           inputMode="decimal"
           autoComplete="off"
@@ -125,11 +132,73 @@ export function QuantityField<TValues extends FieldValues, TOut extends FieldVal
           onChange={field.onChange}
           onBlur={() => {
             field.onBlur();
-            // "92.3" → "92.300" (only when the value is valid).
             const value = String(field.value ?? "");
-            if (checkDecimal(value, 3) === "ok") field.onChange(formatQuantity(parseDecimal(value) ?? 0));
+            if (checkDecimal(value, decimals) === "ok") field.onChange(format(parseDecimal(value) ?? 0));
           }}
         />
+      )}
+    />
+  );
+}
+
+/** الكمية: required, 3 decimals ("92.3" → "92.300" after leaving the field). */
+export function QuantityField<TValues extends FieldValues, TOut extends FieldValues = TValues>(
+  props: FieldProps<TValues, TOut>
+) {
+  return <DecimalField {...props} decimals={3} required />;
+}
+
+/** A native select from a short fixed list (e.g. مرحلة العقد); the empty choice = none. */
+export function SelectField<TValues extends FieldValues, TOut extends FieldValues = TValues>({
+  control,
+  name,
+  label,
+  list,
+  emptyLabel = "—",
+  disabled,
+  error,
+}: FieldProps<TValues, TOut> & { list: OptionList; emptyLabel?: string }) {
+  const id = useId();
+  const messageId = `${id}-message`;
+  const message = error ?? (list.loadError ? "تعذر تحميل القائمة" : undefined);
+  return (
+    <Controller
+      control={control}
+      name={name}
+      render={({ field }) => (
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor={id} className="text-sm font-semibold text-foreground">
+            {label}
+          </label>
+          <select
+            id={id}
+            name={field.name}
+            ref={field.ref}
+            value={field.value ?? ""}
+            onChange={field.onChange}
+            onBlur={field.onBlur}
+            disabled={disabled || list.loading}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={message ? messageId : undefined}
+            className={cn(
+              "h-11 w-full rounded-lg border bg-surface px-3 text-sm text-foreground shadow-sm",
+              "focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60",
+              error ? "border-danger" : "border-border"
+            )}
+          >
+            <option value="">{list.loading ? "جاري التحميل…" : emptyLabel}</option>
+            {list.options.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          {message && (
+            <p id={messageId} className="text-xs text-danger">
+              {message}
+            </p>
+          )}
+        </div>
       )}
     />
   );

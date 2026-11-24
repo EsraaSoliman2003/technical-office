@@ -40,6 +40,24 @@ export function useOptionList(
   }, [currentData, isLoading, isError, extraId, extraName]);
 }
 
+/** A fixed `{ value, label }` list from the API (e.g. a `/meta` endpoint's stages) as an `OptionList`. */
+export function useLabeledList(
+  items: readonly { value: string; label: string }[] | undefined,
+  isLoading: boolean,
+  isError: boolean
+): OptionList {
+  return useMemo(() => {
+    const names = new Map((items ?? []).map((item) => [item.value, item.label]));
+    return {
+      options: (items ?? []).map((item) => ({ value: item.value, label: item.label })),
+      ids: items?.map((item) => item.value),
+      loading: isLoading,
+      loadError: isError,
+      nameOf: (value) => (value ? names.get(value) : undefined),
+    };
+  }, [items, isLoading, isError]);
+}
+
 /**
  * True while a filter has a value whose option list is still loading: skip the list query until
  * then, so an unknown (deleted) id is dropped from the URL first. A list that failed doesn't block.

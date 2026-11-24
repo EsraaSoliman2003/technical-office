@@ -32,3 +32,19 @@ export function quantityText(requiredMessage = "الكمية مطلوبة") {
     { message: "الكمية يجب أن تكون أكبر من صفر" }
   );
 }
+
+/** An optional non-negative decimal ("" = none), at most `maxDecimals` places. */
+export function optionalDecimalText(maxDecimals = 2) {
+  return z.string().superRefine((value, ctx) => {
+    const check = checkDecimal(value, maxDecimals);
+    const message =
+      check === "negative"
+        ? "القيمة يجب ألا تكون سالبة"
+        : check === "invalid"
+          ? "أدخل رقمًا صحيحًا"
+          : check === "decimals"
+            ? decimalsMessage(maxDecimals)
+            : null;
+    if (message) ctx.addIssue({ code: "custom", message });
+  });
+}

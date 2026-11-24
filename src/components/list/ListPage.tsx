@@ -62,6 +62,10 @@ type ListPageProps<T extends { id: string }, TSortBy extends string> = {
   headerActions?: ReactNode;
   /** Shown under the table next to "عدد النتائج" (e.g. a total). */
   summary?: ReactNode;
+  /** Label of the row count under the table (default "عدد النتائج"). */
+  countLabel?: string;
+  /** A row above the search box (e.g. status counters). */
+  topBar?: ReactNode;
   /** Dialogs of the page (they can read the focus fallback with `useListFallbackFocus`). */
   children?: ReactNode;
 };
@@ -85,6 +89,8 @@ export default function ListPage<T extends { id: string }, TSortBy extends strin
   searchPlaceholder = "بحث...",
   headerActions,
   summary,
+  countLabel = "عدد النتائج",
+  topBar,
   children,
 }: ListPageProps<T, TSortBy>) {
   const { currentData, isFetching, isError, error, refetch } = query;
@@ -217,6 +223,7 @@ export default function ListPage<T extends { id: string }, TSortBy extends strin
         aria-label={title}
         className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm"
       >
+        {topBar && <div className="border-b border-border px-4 py-3">{topBar}</div>}
         <div className="flex flex-wrap items-center gap-3 border-b border-border p-4">
           <div className="relative w-full max-w-md">
             <Search
@@ -259,7 +266,7 @@ export default function ListPage<T extends { id: string }, TSortBy extends strin
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
             <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
               <p className="text-sm text-muted-foreground">
-                عدد النتائج: <span className="font-semibold text-foreground tabular-nums">{totalCount}</span>
+                {countLabel}: <span className="font-semibold text-foreground tabular-nums">{totalCount}</span>
               </p>
               {summary}
             </div>
