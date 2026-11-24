@@ -16,7 +16,7 @@ import {
   useRemoveCompanyMaterialMutation,
 } from "@/rtk/endpoints/companyMaterialApi";
 import type { CompanyMaterialFilters, CompanyMaterialItem, CompanyMaterialSortBy } from "@/types/companyMaterial";
-import { getFailureMessage, isApiFailure, NO_PERMISSION_MESSAGE } from "@/utils/apiFailure";
+import { getFailureMessage, isApiFailure, NO_PERMISSION_MESSAGE, type ApiFailure } from "@/utils/apiFailure";
 import CompanyMaterialAttachmentsDialog from "./CompanyMaterialAttachmentsDialog";
 import CompanyMaterialFormDialog from "./CompanyMaterialFormDialog";
 import CompanyMaterialsPrintView, { type PrintData } from "./CompanyMaterialsPrintView";
@@ -62,6 +62,23 @@ function OptionFilter({
       className="w-full sm:w-56"
     />
   );
+}
+
+/**
+ * `/export` failure → toast text. The API reports "more than 5000 rows" as a 400 with
+ * `errors.search`; any other 400 shows its first field error (or the general message).
+ */
+function exportErrorMessage(failure: ApiFailure | undefined) {
+  if (failure?.status === 403) return NO_PERMISSION_MESSAGE;
+  if (failure?.status === 400) {
+    const entries = Object.entries(failure.fieldErrors);
+    if (entries.some(([key]) => key.toLowerCase() === "search")) {
+      return "عدد السجلات كبير جدًا للطباعة (الحد الأقصى 5000 سجل). ضيّق نطاق البحث أو الفلاتر ثم حاول مرة أخرى.";
+    }
+    const first = entries.flatMap(([, messages]) => messages)[0];
+    if (first) return first;
+  }
+  return getFailureMessage(failure);
 }
 
 const quantityText = (value: number) => (
@@ -201,14 +218,7 @@ function CompanyMaterialsPageContent() {
       setExporting(false);
     }
     if (result.error || !result.data) {
-      const failure = isApiFailure(result.error) ? result.error : undefined;
-      toast.error(
-        failure?.status === 400
-          ? "عدد السجلات كبير جدًا للطباعة (الحد الأقصى 5000 سجل). ضيّق نطاق البحث أو الفلاتر ثم حاول مرة أخرى."
-          : failure?.status === 403
-            ? NO_PERMISSION_MESSAGE
-            : getFailureMessage(failure)
-      );
+      toast.error(exportErrorMessage(isApiFailure(result.error) ? result.error : undefined));
       return;
     }
     if (result.data.length === 0) {
