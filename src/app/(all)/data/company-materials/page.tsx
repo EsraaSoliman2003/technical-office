@@ -1,4 +1,4 @@
-import CompanyMaterialsPage from "@/features/company-materials/CompanyMaterialsPage";
+import CompanyMaterialsPage from "@/components/company-materials/CompanyMaterialsPage";
 
 export default function Page() {
   return <CompanyMaterialsPage />;
