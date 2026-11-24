@@ -225,13 +225,19 @@ function CompanyMaterialsPageContent() {
       toast.error("لا توجد بيانات للطباعة");
       return;
     }
+    // A filtered id's name: from its option list, else (list not loaded) from the rows, which all match it.
+    const rows = result.data;
+    const first = rows[0];
+    const projectName = filters.projectId ? (projects.nameOf(filters.projectId) ?? first.projectName) : undefined;
+    const printMaterialName = filters.materialId ? (materialName ?? first.materialName) : undefined;
+    const companyName = filters.companyId ? (companies.nameOf(filters.companyId) ?? first.companyName) : undefined;
     const active = [
-      { label: "المشروع", value: projects.nameOf(filters.projectId) },
-      { label: "الخامة", value: materialName },
-      { label: "الشركة المنفذة", value: companies.nameOf(filters.companyId) },
+      { label: "المشروع", value: projectName },
+      { label: "الخامة", value: printMaterialName },
+      { label: "الشركة المنفذة", value: companyName },
       { label: "البحث", value: list.search ? `"${list.search}"` : undefined },
     ].filter((filter): filter is { label: string; value: string } => Boolean(filter.value));
-    setPrintData({ rows: result.data, filters: active, materialName, printedAt: new Date().toISOString() });
+    setPrintData({ rows, filters: active, materialName: printMaterialName, printedAt: new Date().toISOString() });
   };
 
   return (
