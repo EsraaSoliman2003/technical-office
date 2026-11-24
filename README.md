@@ -69,12 +69,16 @@ The backend must allow the site's origin in its CORS settings.
 src/
   app/                 routes: (auth)/login, (all)/ (protected pages: home, /data, /data/<lookup>)
   components/          shell, guards, module cards, ui/ (Button, Input, Modal, ...)
-    list/              reusable list screen: URL list state, page shell, table with columns + row actions
+    list/              reusable list screen: URL list state + filters, page shell, table, toolbar filters, cells
     lookup/            name-only lookup screen (built on list/)
-    attachments/       shared attachment upload/view/delete pieces (Companies, Projects)
+    attachments/       shared attachment upload/view/delete pieces
+    form/              shared form fields: dropdown from an options list, clearable date, quantity
+    options/           options endpoints → dropdown lists (+ filter helpers)
+    print/             in-app A4 print view + export → print flow (طباعة / PDF)
     companies/         الشركات screen with attachments (built on list/)
     projects/          المشاريع screen: status filter, materials rows, attachments per category
     company-materials/ خامات الشركات screen: dropdown filters, total quantity, print / PDF view
+    material-deliveries/ خامات المشاريع screen (one row per delivery): filters, totals panel, print
   lib/                 axios, runtime config, session, theme, lookups list
   rtk/                 store, base API (api.ts), endpoints/, slices/
   types/               API types (auth, lookups, paged results)
