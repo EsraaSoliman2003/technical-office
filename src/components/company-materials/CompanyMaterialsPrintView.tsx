@@ -46,13 +46,25 @@ export default function CompanyMaterialsPrintView({ data, onDone }: CompanyMater
 
   useEffect(() => {
     document.body.classList.add("printing");
-    const done = () => onDoneRef.current();
+    let finished = false;
+    const done = () => {
+      if (finished) return;
+      finished = true;
+      onDoneRef.current();
+    };
+    // Fallback if `afterprint` never fires: the first interaction after print() returned
+    // (print() blocks until the dialog closes in Chromium/WebView2 and Firefox).
+    const fallbackEvents = ["pointerdown", "keydown", "focus"] as const;
     window.addEventListener("afterprint", done);
     // After the print DOM is committed and painted.
-    const frame = requestAnimationFrame(() => window.print());
+    const frame = requestAnimationFrame(() => {
+      window.print();
+      if (!finished) for (const type of fallbackEvents) window.addEventListener(type, done, { once: true });
+    });
     return () => {
       cancelAnimationFrame(frame);
       window.removeEventListener("afterprint", done);
+      for (const type of fallbackEvents) window.removeEventListener(type, done);
       document.body.classList.remove("printing");
     };
   }, []);

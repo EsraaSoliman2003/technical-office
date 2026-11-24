@@ -72,7 +72,6 @@ export const companyMaterialApi = api
 
 export const {
   useListCompanyMaterialsQuery,
-  useLazyExportCompanyMaterialsQuery,
   useGetCompanyMaterialQuery,
   useCreateCompanyMaterialMutation,
   useUpdateCompanyMaterialMutation,

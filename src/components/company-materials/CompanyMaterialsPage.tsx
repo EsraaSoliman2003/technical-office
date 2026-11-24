@@ -11,8 +11,9 @@ import type { ListColumn } from "@/components/list/ListTable";
 import { useListState, type ListStateOptions } from "@/components/list/useListState";
 import { Button, Combobox } from "@/components/ui";
 import { formatQuantity } from "@/lib/numbers";
+import { useAppDispatch } from "@/rtk/hooks";
 import {
-  useLazyExportCompanyMaterialsQuery,
+  companyMaterialApi,
   useListCompanyMaterialsQuery,
   useRemoveCompanyMaterialMutation,
 } from "@/rtk/endpoints/companyMaterialApi";
@@ -213,7 +214,7 @@ function CompanyMaterialsPageContent() {
     : undefined;
 
   // ---- طباعة / PDF: all rows for the current filters and sort → print view ----
-  const [exportRows] = useLazyExportCompanyMaterialsQuery();
+  const dispatch = useAppDispatch();
   const [exporting, setExporting] = useState(false);
   const [printData, setPrintData] = useState<PrintData | null>(null);
 
@@ -222,9 +223,13 @@ function CompanyMaterialsPageContent() {
     setExporting(true);
     let result;
     try {
-      result = await exportRows(
-        { search: list.params.search, sortBy: list.sortBy, sortDir: list.sortDir, ...filters },
-        false // always fresh
+      // One-off fetch: always fresh, and not subscribed, so the rows (up to 5000) are not kept in
+      // the store (keepUnusedDataFor: 0); the print view holds its own copy until it closes.
+      result = await dispatch(
+        companyMaterialApi.endpoints.exportCompanyMaterials.initiate(
+          { search: list.params.search, sortBy: list.sortBy, sortDir: list.sortDir, ...filters },
+          { subscribe: false, forceRefetch: true }
+        )
       );
     } finally {
       setExporting(false);
