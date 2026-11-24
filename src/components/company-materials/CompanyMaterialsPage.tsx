@@ -283,7 +283,8 @@ function CompanyMaterialsPageContent() {
           item={dialog.mode === "edit" ? dialog.item : undefined}
           prefill={dialog.mode === "create" ? filters : undefined}
           onClose={() => setDialog(null)}
-          onCreated={list.showNewest}
+          // The new row matches the pre-filled filters, so they stay.
+          onCreated={() => list.showNewest({ keepFilters: true })}
         />
       )}
       {viewing && (

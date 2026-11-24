@@ -36,8 +36,11 @@ export type ListState<TSortBy extends string> = {
   setPage: (page: number) => void;
   /** Header click: same column flips the direction, a new column starts with its default direction. */
   toggleSort: (column: TSortBy) => void;
-  /** After a create: clear search, page 1, default sort (createdAt desc) → the new row is on top. */
-  showNewest: () => void;
+  /**
+   * After a create: clear search, page 1, default sort (createdAt desc) → the new row is on top.
+   * Filters are cleared too, unless `keepFilters` (when the new row matches them, e.g. pre-filled).
+   */
+  showNewest: (options?: { keepFilters?: boolean }) => void;
   /** Current (valid) values of `filterValues` keys (missing = no filter). */
   filters: Record<string, string | undefined>;
   /** Sets (or clears with null) a filter and goes to page 1. */
@@ -151,17 +154,17 @@ export function useListState<TSortBy extends string>({
     [updateQuery]
   );
 
-  /** Also clears the filters, so the new row is not hidden by one. */
-  const showNewest = useCallback(() => {
-    setSearchText("");
-    updateQuery({
-      search: null,
-      page: null,
-      sortBy: null,
-      sortDir: null,
-      ...Object.fromEntries(Object.keys(filterValues).map((key) => [key, null])),
-    });
-  }, [updateQuery, filterValues]);
+  /** Also clears the filters (unless kept), so the new row is not hidden by one. */
+  const showNewest = useCallback(
+    (options?: { keepFilters?: boolean }) => {
+      setSearchText("");
+      const clearedFilters = options?.keepFilters
+        ? {}
+        : Object.fromEntries(Object.keys(filterValues).map((key) => [key, null]));
+      updateQuery({ search: null, page: null, sortBy: null, sortDir: null, ...clearedFilters });
+    },
+    [updateQuery, filterValues]
+  );
 
   const params = useMemo<ListParams<TSortBy>>(
     () => ({ search: urlSearch || undefined, page, pageSize, sortBy, sortDir }),
