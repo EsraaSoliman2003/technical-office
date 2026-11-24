@@ -37,14 +37,13 @@ import {
   type CompanyMaterialFormValues,
   type CompanyMaterialSchemaType,
 } from "@/validation/companyMaterialSchema";
-import type { OptionList } from "./useOptionLists";
+import { useOptionLists, type OptionList } from "./useOptionLists";
 
 type CompanyMaterialFormDialogProps = {
   /** Row to edit; omit to add a new one. */
   item?: CompanyMaterialItem;
   /** When adding: the list's active filters pre-fill المشروع / الخامة / الشركة. */
   prefill?: CompanyMaterialFilters;
-  lists: { projects: OptionList; materials: OptionList; companies: OptionList };
   onClose: () => void;
   /** Called after the row was created (also when its upload then failed). */
   onCreated?: () => void;
@@ -93,7 +92,6 @@ function savedRequestOf(item: CompanyMaterialItem): SaveCompanyMaterialRequest {
 export default function CompanyMaterialFormDialog({
   item,
   prefill,
-  lists,
   onClose,
   onCreated,
 }: CompanyMaterialFormDialogProps) {
@@ -103,6 +101,8 @@ export default function CompanyMaterialFormDialog({
   const savingRef = useRef(false);
   const dispatch = useAppDispatch();
   const listFallbackFocusRef = useListFallbackFocus();
+  // The edited row's own names show even before the lists load.
+  const lists = useOptionLists(item);
   useWindowFileDropGuard();
 
   // The row being edited; set after a create (ref: read synchronously by onSubmit).
