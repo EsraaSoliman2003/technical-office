@@ -414,19 +414,19 @@ export default function ProjectFormDialog({ project, onClose, onCreated }: Proje
                 disabled={saving}
                 pickButtonRef={pickRefOf[category]}
               />
-              {projectId && existing && existing.length > 0 && (
-                <div className="flex flex-col gap-2">
-                  <p className="text-xs font-semibold text-muted-foreground">
-                    المرفقات المحفوظة: {PROJECT_ATTACHMENT_LABELS[category]}
-                  </p>
-                  <SavedAttachments
-                    attachments={existing}
-                    baseUrl={projectAttachmentsUrl(projectId)}
-                    onRemove={(attachment) => removeAttachment({ projectId, attachmentId: attachment.id })}
-                    disabled={saving}
-                    fallbackFocusRef={pickRefOf[category]}
-                  />
-                </div>
+              {projectId && existing && (
+                <SavedAttachments
+                  attachments={existing}
+                  baseUrl={projectAttachmentsUrl(projectId)}
+                  onRemove={(attachment) => removeAttachment({ projectId, attachmentId: attachment.id })}
+                  disabled={saving}
+                  fallbackFocusRef={pickRefOf[category]}
+                  heading={
+                    <p className="text-xs font-semibold text-muted-foreground">
+                      المرفقات المحفوظة: {PROJECT_ATTACHMENT_LABELS[category]}
+                    </p>
+                  }
+                />
               )}
             </div>
           );

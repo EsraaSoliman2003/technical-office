@@ -59,15 +59,15 @@ export function AttachmentsViewerDialog({
         }
       />
     );
-  } else if (!attachments || attachments.length === 0) {
-    body = <EmptyState icon={Paperclip} title="لا توجد مرفقات" />;
   } else {
+    // Mounted for an empty list too, so deleting the last attachment still moves focus.
     body = (
       <SavedAttachments
-        attachments={attachments}
+        attachments={attachments ?? []}
         baseUrl={baseUrl}
         onRemove={onRemove}
         fallbackFocusRef={closeButtonRef}
+        empty={<EmptyState icon={Paperclip} title="لا توجد مرفقات" />}
       />
     );
   }

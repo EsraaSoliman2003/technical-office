@@ -250,17 +250,15 @@ export default function CompanyFormDialog({ company, onClose, onCreated }: Compa
         <div className="flex flex-col gap-2">
           <AttachmentUploadField label="المرفقات" files={newFiles} disabled={saving} pickButtonRef={pickButtonRef} />
 
-          {companyId && existing && existing.length > 0 && (
-            <div className="flex flex-col gap-2">
-              <p className="text-xs font-semibold text-muted-foreground">المرفقات المحفوظة</p>
-              <SavedAttachments
-                attachments={existing}
-                baseUrl={companyAttachmentsUrl(companyId)}
-                onRemove={(attachment) => removeAttachment({ companyId, attachmentId: attachment.id })}
-                disabled={saving}
-                fallbackFocusRef={pickButtonRef}
-              />
-            </div>
+          {companyId && existing && (
+            <SavedAttachments
+              attachments={existing}
+              baseUrl={companyAttachmentsUrl(companyId)}
+              onRemove={(attachment) => removeAttachment({ companyId, attachmentId: attachment.id })}
+              disabled={saving}
+              fallbackFocusRef={pickButtonRef}
+              heading={<p className="text-xs font-semibold text-muted-foreground">المرفقات المحفوظة</p>}
+            />
           )}
         </div>
       </form>
