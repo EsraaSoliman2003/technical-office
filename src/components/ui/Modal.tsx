@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { cn } from "@/lib/cn";
 
-export type ModalSize = "sm" | "md" | "lg";
+export type ModalSize = "sm" | "md" | "lg" | "xl";
 
 type ModalProps = {
   open: boolean;
@@ -36,6 +36,8 @@ const sizeClasses: Record<ModalSize, string> = {
   sm: "max-w-sm",
   md: "max-w-lg",
   lg: "max-w-3xl",
+  /** Two-column forms. */
+  xl: "max-w-5xl",
 };
 
 const FOCUSABLE =

@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
-import { Controller, useForm, useWatch } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { skipToken } from "@reduxjs/toolkit/query";
 import { AlertTriangle } from "lucide-react";
@@ -11,9 +11,10 @@ import { SavedAttachments } from "@/components/attachments/SavedAttachments";
 import { usePendingFiles, useWindowFileDropGuard } from "@/components/attachments/usePendingFiles";
 import { applyServerFieldErrors, isInTopDialog, useSaveShortcut } from "@/components/list/formHelpers";
 import { useListFallbackFocus } from "@/components/list/ListPage";
-import { Button, Combobox, Input, Modal, Textarea } from "@/components/ui";
+import { ComboboxField, QuantityField } from "@/components/form/fields";
+import { Button, Input, Modal, Textarea } from "@/components/ui";
 import { uploadAttachments } from "@/lib/attachmentTransfer";
-import { checkDecimal, formatQuantity, parseDecimal } from "@/lib/numbers";
+import { formatQuantity, parseDecimal } from "@/lib/numbers";
 import {
   companyMaterialApi,
   companyMaterialAttachmentsUrl,
@@ -213,29 +214,18 @@ export default function CompanyMaterialFormDialog({
     if (!savingRef.current && isInTopDialog(formRef.current)) formRef.current?.requestSubmit();
   });
 
-  const quantityField = form.register("quantity");
   const isEdit = recordId !== null;
 
   /** A required dropdown (المشروع / الخامة / الشركة): chosen from existing records, never typed. */
   const select = (name: "projectId" | "materialId" | "companyId", label: string, list: OptionList) => (
-    <Controller
+    <ComboboxField
       control={form.control}
       name={name}
-      render={({ field }) => (
-        <Combobox
-          label={label}
-          required
-          options={list.options}
-          value={field.value}
-          onChange={field.onChange}
-          onBlur={field.onBlur}
-          inputRef={field.ref}
-          loading={list.loading}
-          error={errors[name]?.message ?? (list.loadError ? "تعذر تحميل القائمة" : undefined)}
-          disabled={saving}
-          placeholder="اكتب للبحث أو اختر من القائمة"
-        />
-      )}
+      label={label}
+      list={list}
+      required
+      disabled={saving}
+      error={errors[name]?.message}
     />
   );
 
@@ -294,21 +284,12 @@ export default function CompanyMaterialFormDialog({
           {select("projectId", "اسم المشروع", lists.projects)}
           {select("materialId", "الخامة", lists.materials)}
           {select("companyId", "الشركة المنفذة", lists.companies)}
-          <Input
+          <QuantityField
+            control={form.control}
+            name="quantity"
             label="الكمية"
-            required
-            dir="ltr"
-            inputMode="decimal"
-            autoComplete="off"
-            readOnly={saving}
+            disabled={saving}
             error={errors.quantity?.message}
-            {...quantityField}
-            onBlur={(event) => {
-              void quantityField.onBlur(event);
-              // "92.3" → "92.300" (only when the value is valid).
-              const value = form.getValues("quantity");
-              if (checkDecimal(value, 3) === "ok") form.setValue("quantity", formatQuantity(parseDecimal(value) ?? 0));
-            }}
           />
           <Input
             label="المهندس المستلم"
