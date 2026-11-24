@@ -16,8 +16,9 @@ export type ListStateOptions<TSortBy extends string> = {
   /**
    * Extra query-string filters with their allowed values (e.g. `{ status: ["Study", ...] }` → `?status=`).
    * Changing one resets to page 1; an unknown value is removed from the URL and ignored.
-   * `undefined` = allowed values not loaded yet (e.g. ids from an options endpoint): the URL value
-   * is used as-is until they are known. Pass a memoized object.
+   * `undefined` = any value: free text (e.g. a number matched exactly), or allowed values not loaded
+   * yet (ids from an options endpoint; the URL value is used as-is until they are known).
+   * Pass a memoized object.
    */
   filterValues?: Readonly<Record<string, readonly string[] | undefined>>;
 };

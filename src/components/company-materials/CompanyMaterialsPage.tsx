@@ -17,7 +17,7 @@ import type { ListColumn } from "@/components/list/ListTable";
 import { OptionFilter } from "@/components/list/OptionFilter";
 import { useListState, type ListStateOptions } from "@/components/list/useListState";
 import { filterName, waitingForOptions } from "@/components/options/useOptionList";
-import type { PrintColumn } from "@/components/print/PrintView";
+import { activeFilters, type PrintColumn } from "@/components/print/PrintView";
 import { usePrintExport } from "@/components/print/usePrintExport";
 import { formatQuantity } from "@/lib/numbers";
 import {
@@ -191,24 +191,14 @@ function CompanyMaterialsPageContent() {
         ),
       (rows, printedAt) => {
         const printMaterialName = filterName(filters.materialId, materials, rows, (row) => row.materialName);
-        const active = [
-          {
-            label: "المشروع",
-            value: filterName(filters.projectId, projects, rows, (row) => row.projectName),
-          },
-          { label: "الخامة", value: printMaterialName },
-          {
-            label: "الشركة المنفذة",
-            value: filterName(filters.companyId, companies, rows, (row) => row.companyName),
-          },
-          {
-            label: "البحث",
-            value: list.search ? `"${list.search}"` : undefined,
-          },
-        ].filter((filter): filter is { label: string; value: string } => Boolean(filter.value));
         return {
           title: "خامات الشركات",
-          filters: active,
+          filters: activeFilters([
+            ["المشروع", filterName(filters.projectId, projects, rows, (row) => row.projectName)],
+            ["الخامة", printMaterialName],
+            ["الشركة المنفذة", filterName(filters.companyId, companies, rows, (row) => row.companyName)],
+            ["البحث", list.search ? `"${list.search}"` : undefined],
+          ]),
           columns: PRINT_COLUMNS,
           rows,
           total: {

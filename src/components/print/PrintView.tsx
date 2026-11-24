@@ -109,3 +109,8 @@ export default function PrintView<T extends { id: string }>({ job, onDone }: Pri
     document.body
   );
 }
+
+/** The print header's filters: `[label, value]` pairs, keeping only those with a value. */
+export function activeFilters(entries: [label: string, value: string | undefined][]): PrintJob<never>["filters"] {
+  return entries.flatMap(([label, value]) => (value ? [{ label, value }] : []));
+}
