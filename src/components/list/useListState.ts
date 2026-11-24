@@ -39,9 +39,9 @@ export type ListState<TSortBy extends string> = {
   toggleSort: (column: TSortBy) => void;
   /**
    * After a create: clear search, page 1, default sort (createdAt desc) → the new row is on top.
-   * Filters are cleared too, unless `keepFilters` (when the new row matches them, e.g. pre-filled).
+   * Filters are cleared too, except the `keepFilters` keys (ones the new row matches, e.g. pre-filled).
    */
-  showNewest: (options?: { keepFilters?: boolean }) => void;
+  showNewest: (options?: { keepFilters?: readonly string[] }) => void;
   /** Current (valid) values of `filterValues` keys (missing = no filter). */
   filters: Record<string, string | undefined>;
   /** Sets (or clears with null) a filter and goes to page 1. */
@@ -155,13 +155,16 @@ export function useListState<TSortBy extends string>({
     [updateQuery]
   );
 
-  /** Also clears the filters (unless kept), so the new row is not hidden by one. */
+  /** Also clears the filters (except the kept keys), so the new row is not hidden by one. */
   const showNewest = useCallback(
-    (options?: { keepFilters?: boolean }) => {
+    (options?: { keepFilters?: readonly string[] }) => {
       setSearchText("");
-      const clearedFilters = options?.keepFilters
-        ? {}
-        : Object.fromEntries(Object.keys(filterValues).map((key) => [key, null]));
+      const kept = options?.keepFilters ?? [];
+      const clearedFilters = Object.fromEntries(
+        Object.keys(filterValues)
+          .filter((key) => !kept.includes(key))
+          .map((key) => [key, null])
+      );
       updateQuery({ search: null, page: null, sortBy: null, sortDir: null, ...clearedFilters });
     },
     [updateQuery, filterValues]

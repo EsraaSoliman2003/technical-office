@@ -258,7 +258,7 @@ function CompanyMaterialsPageContent() {
           prefill={dialog.mode === "create" ? filters : undefined}
           onClose={() => setDialog(null)}
           // The new row matches the pre-filled filters, so they stay.
-          onCreated={() => list.showNewest({ keepFilters: true })}
+          onCreated={() => list.showNewest({ keepFilters: ["projectId", "materialId", "companyId"] })}
         />
       )}
       {viewing && (

@@ -276,8 +276,9 @@ function MaterialDeliveriesPageContent() {
             dialog.mode === "create" ? { projectId: filters.projectId, materialId: filters.materialId } : undefined
           }
           onClose={() => setDialog(null)}
-          // Keep the filters (المشروع / الخامة pre-fill the next add), like خامات الشركات.
-          onCreated={() => list.showNewest({ keepFilters: true })}
+          // Keep المشروع / الخامة (they pre-fill the next add); clear the number filters, which the
+          // new delivery may not match.
+          onCreated={() => list.showNewest({ keepFilters: ["projectId", "materialId"] })}
         />
       )}
       {viewing && (
