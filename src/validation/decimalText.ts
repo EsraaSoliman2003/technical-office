@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { checkDecimal } from "@/lib/numbers";
+import { checkDecimal, parseDecimal } from "@/lib/numbers";
 
 const decimalsMessage = (maxDecimals: number) =>
   maxDecimals === 2 ? "يُسمح برقمين عشريين فقط" : `يُسمح بـ ${maxDecimals} أرقام عشرية فقط`;
@@ -23,4 +23,12 @@ export function decimalText(requiredMessage: string, maxDecimals = 2) {
               : null;
     if (message) ctx.addIssue({ code: "custom", message });
   });
+}
+
+/** A required quantity: > 0, up to 3 decimals (kept as text, parse with `parseDecimal`). */
+export function quantityText(requiredMessage = "الكمية مطلوبة") {
+  return decimalText(requiredMessage, 3).refine(
+    (value) => checkDecimal(value, 3) !== "ok" || (parseDecimal(value) ?? 0) > 0,
+    { message: "الكمية يجب أن تكون أكبر من صفر" }
+  );
 }

@@ -1,4 +1,5 @@
 import type { LookupDto, LookupInput, LookupListParams, LookupResource } from "@/types/lookup";
+import type { NamedOption } from "@/types/options";
 import type { PagedResult } from "@/types/paged";
 import { api } from "../api";
 
@@ -48,6 +49,12 @@ export const lookupApi = api.enhanceEndpoints({ addTagTypes: ["Lookup"] }).injec
       invalidatesTags: (_result, error, { resource, id }) =>
         error ? [] : [listTag(resource), itemTag(resource, id), lookupChangedTag(resource)],
     }),
+
+    /** `{ id, name }` of all rows (`/api/{resource}/options`), for dropdowns elsewhere. */
+    lookupOptions: build.query<NamedOption[], LookupResource>({
+      query: (resource) => ({ url: `${resource}/options` }),
+      providesTags: (_result, _error, resource) => [listTag(resource)],
+    }),
   }),
 });
 
@@ -57,4 +64,5 @@ export const {
   useCreateLookupMutation,
   useUpdateLookupMutation,
   useRemoveLookupMutation,
+  useLookupOptionsQuery,
 } = lookupApi;

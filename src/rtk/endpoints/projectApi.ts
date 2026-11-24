@@ -94,3 +94,6 @@ export const projectAttachmentsUrl = (projectId: string) => `${RESOURCE}/${proje
 
 /** Cache tag of the projects list (also invalidated when a project is renamed). */
 export const projectListTag = listTag;
+
+/** Cache tag of one project (its materials hold the approved quantities). */
+export const projectItemTag = itemTag;

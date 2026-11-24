@@ -7,6 +7,7 @@ import type {
   SaveCompanyMaterialRequest,
 } from "@/types/companyMaterial";
 import { api } from "../api";
+import { cleanParams } from "../queryParams";
 import { companyListTag } from "./companyApi";
 import { lookupChangedTag } from "./lookupApi";
 import { projectListTag } from "./projectApi";
@@ -16,11 +17,6 @@ const listTag = { type: "CompanyMaterial" as const, id: "LIST" };
 const itemTag = (id: string) => ({ type: "CompanyMaterial" as const, id });
 /** Rows show project, material and company names: refetch when one of those is renamed. */
 const nameTags = [projectListTag, companyListTag, lookupChangedTag("materials")];
-
-/** Query string without empty values (`search=""`, a cleared filter). */
-function cleanParams(params: Record<string, string | number | undefined>) {
-  return Object.fromEntries(Object.entries(params).filter(([, value]) => value !== undefined && value !== ""));
-}
 
 /** خامات الشركات (`/api/company-materials`): list with total quantity, export, CRUD, attachments (البوليصة). */
 export const companyMaterialApi = api
