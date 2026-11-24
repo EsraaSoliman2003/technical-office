@@ -56,6 +56,12 @@ type ListPageProps<T extends { id: string }, TSortBy extends string> = {
   onDelete?: (item: T) => PromiseLike<{ error?: unknown }>;
   /** Extra controls next to the search box (e.g. a status filter). */
   toolbar?: ReactNode;
+  /** Search box placeholder (default "بحث..."). */
+  searchPlaceholder?: string;
+  /** Extra buttons next to "إضافة" (e.g. print). */
+  headerActions?: ReactNode;
+  /** Shown under the table next to "عدد النتائج" (e.g. a total). */
+  summary?: ReactNode;
   /** Dialogs of the page (they can read the focus fallback with `useListFallbackFocus`). */
   children?: ReactNode;
 };
@@ -76,6 +82,9 @@ export default function ListPage<T extends { id: string }, TSortBy extends strin
   onEdit,
   onDelete,
   toolbar,
+  searchPlaceholder = "بحث...",
+  headerActions,
+  summary,
   children,
 }: ListPageProps<T, TSortBy>) {
   const { currentData, isFetching, isError, error, refetch } = query;
@@ -188,11 +197,16 @@ export default function ListPage<T extends { id: string }, TSortBy extends strin
           <span className="h-7 w-1.5 rounded-full bg-primary" aria-hidden="true" />
           {title}
         </h1>
-        {showAdd && (
-          <Button ref={addButtonRef} onClick={onAdd}>
-            <Plus size={18} aria-hidden="true" />
-            إضافة
-          </Button>
+        {(showAdd || headerActions) && (
+          <div className="flex flex-wrap items-center gap-2">
+            {headerActions}
+            {showAdd && (
+              <Button ref={addButtonRef} onClick={onAdd}>
+                <Plus size={18} aria-hidden="true" />
+                إضافة
+              </Button>
+            )}
+          </div>
         )}
       </div>
 
@@ -213,7 +227,7 @@ export default function ListPage<T extends { id: string }, TSortBy extends strin
             <Input
               type="search"
               aria-label={`بحث في ${title}`}
-              placeholder="بحث..."
+              placeholder={searchPlaceholder}
               value={list.searchText}
               onChange={(event) => list.setSearchText(event.target.value)}
               onKeyDown={(event) => {
@@ -243,9 +257,12 @@ export default function ListPage<T extends { id: string }, TSortBy extends strin
 
         {currentData && totalCount > 0 && (
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
-            <p className="text-sm text-muted-foreground">
-              عدد النتائج: <span className="font-semibold text-foreground tabular-nums">{totalCount}</span>
-            </p>
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
+              <p className="text-sm text-muted-foreground">
+                عدد النتائج: <span className="font-semibold text-foreground tabular-nums">{totalCount}</span>
+              </p>
+              {summary}
+            </div>
             <Pagination page={page} totalPages={totalPages} onPageChange={setPage} disabled={isFetching} />
           </div>
         )}

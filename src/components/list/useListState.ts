@@ -16,8 +16,10 @@ export type ListStateOptions<TSortBy extends string> = {
   /**
    * Extra query-string filters with their allowed values (e.g. `{ status: ["Study", ...] }` → `?status=`).
    * Changing one resets to page 1; an unknown value is removed from the URL and ignored.
+   * `undefined` = allowed values not loaded yet (e.g. ids from an options endpoint): the URL value
+   * is used as-is until they are known. Pass a memoized object.
    */
-  filterValues?: Readonly<Record<string, readonly string[]>>;
+  filterValues?: Readonly<Record<string, readonly string[] | undefined>>;
 };
 
 export type ListState<TSortBy extends string> = {
@@ -42,7 +44,7 @@ export type ListState<TSortBy extends string> = {
   setFilter: (key: string, value: string | null) => void;
 };
 
-const NO_FILTERS: Readonly<Record<string, readonly string[]>> = {};
+const NO_FILTERS: Readonly<Record<string, readonly string[] | undefined>> = {};
 
 function parsePage(value: string | null) {
   const page = Number(value);
@@ -132,7 +134,7 @@ export function useListState<TSortBy extends string>({
       Object.fromEntries(
         Object.entries(filterValues).map(([key, allowed]) => {
           const value = searchParams.get(key);
-          return [key, value && allowed.includes(value) ? value : undefined];
+          return [key, value && (!allowed || allowed.includes(value)) ? value : undefined];
         })
       ),
     [filterValues, searchParams]
