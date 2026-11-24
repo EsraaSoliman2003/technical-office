@@ -6,8 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { skipToken } from "@reduxjs/toolkit/query";
 import { AlertTriangle, X } from "lucide-react";
 import { toast } from "sonner";
-import { AttachmentUploadField } from "@/components/attachments/AttachmentUploadField";
-import { SavedAttachments } from "@/components/attachments/SavedAttachments";
+import { CategoryAttachmentsField, uploadCategoryFiles } from "@/components/attachments/categories";
 import {
   usePendingFiles,
   useWindowFileDropGuard,
@@ -16,7 +15,6 @@ import {
 import { applyServerFieldErrors, isInTopDialog, useSaveShortcut } from "@/components/list/formHelpers";
 import { useListFallbackFocus } from "@/components/list/ListPage";
 import { Button, Input, Modal } from "@/components/ui";
-import { uploadAttachments } from "@/lib/attachmentTransfer";
 import { cn } from "@/lib/cn";
 import { checkDecimal, formatAmount, parseDecimal } from "@/lib/numbers";
 import { PROJECT_STATUS_LABELS, PROJECT_STATUSES } from "@/lib/projectStatus";
@@ -39,7 +37,7 @@ import type {
 } from "@/types/project";
 import { getFailureMessage, isApiFailure, NO_PERMISSION_MESSAGE, type ApiFailure } from "@/utils/apiFailure";
 import { getProjectSchema, type ProjectSchemaType } from "@/validation/projectSchema";
-import { PROJECT_ATTACHMENT_LABELS } from "./attachmentCategories";
+import { PROJECT_ATTACHMENT_CATEGORIES, PROJECT_ATTACHMENT_LABELS } from "./attachmentCategories";
 import { ProjectMaterialsField } from "./ProjectMaterialsField";
 
 type ProjectFormDialogProps = {
@@ -51,7 +49,6 @@ type ProjectFormDialogProps = {
 };
 
 const FORM_FIELDS = ["name", "allocatedAmount", "status", "progressPercent", "completionDate"] as const;
-const CATEGORIES: ProjectAttachmentCategory[] = ["materials", "offers"];
 
 function toRequest(values: ProjectSchemaType): SaveProjectRequest {
   return {
@@ -198,28 +195,12 @@ export default function ProjectFormDialog({ project, onClose, onCreated }: Proje
 
   /** Uploads each category's new files; returns the Arabic reasons of the categories that failed. */
   const uploadPending = async (id: string) => {
-    const failures: string[] = [];
-    for (const category of CATEGORIES) {
-      const files = filesOf[category];
-      const sent = files.files;
-      if (sent.length === 0) continue;
-      files.setProgress(0);
-      try {
-        await uploadAttachments(projectAttachmentsUrl(id), sent, {
-          params: { category },
-          onProgress: files.setProgress,
-        });
-        files.clear();
-      } catch (error) {
-        const failure = isApiFailure(error) ? error : undefined;
-        const hasFileErrors = files.showServerErrors(failure, sent);
-        const reason =
-          failure?.status === 403 ? NO_PERMISSION_MESSAGE : hasFileErrors ? null : getFailureMessage(failure);
-        failures.push(`${PROJECT_ATTACHMENT_LABELS[category]}${reason ? ` (${reason})` : ""}`);
-      } finally {
-        files.setProgress(undefined);
-      }
-    }
+    const failures = await uploadCategoryFiles({
+      url: projectAttachmentsUrl(id),
+      categories: PROJECT_ATTACHMENT_CATEGORIES,
+      filesOf,
+      labels: PROJECT_ATTACHMENT_LABELS,
+    });
     dispatch(projectApi.util.invalidateTags(projectAttachmentTags(id)));
     return failures;
   };
@@ -416,33 +397,18 @@ export default function ProjectFormDialog({ project, onClose, onCreated }: Proje
           disabled={saving}
         />
 
-        {CATEGORIES.map((category) => {
-          const existing = existingOf(category);
-          return (
-            <div key={category} className="flex flex-col gap-2">
-              <AttachmentUploadField
-                label={PROJECT_ATTACHMENT_LABELS[category]}
-                files={filesOf[category]}
-                disabled={saving}
-                pickButtonRef={pickRefOf[category]}
-              />
-              {projectId && existing && (
-                <SavedAttachments
-                  attachments={existing}
-                  baseUrl={projectAttachmentsUrl(projectId)}
-                  onRemove={(attachment) => removeAttachment({ projectId, attachmentId: attachment.id })}
-                  disabled={saving}
-                  fallbackFocusRef={pickRefOf[category]}
-                  heading={
-                    <p className="text-xs font-semibold text-muted-foreground">
-                      المرفقات المحفوظة: {PROJECT_ATTACHMENT_LABELS[category]}
-                    </p>
-                  }
-                />
-              )}
-            </div>
-          );
-        })}
+        {PROJECT_ATTACHMENT_CATEGORIES.map((category) => (
+          <CategoryAttachmentsField
+            key={category}
+            label={PROJECT_ATTACHMENT_LABELS[category]}
+            files={filesOf[category]}
+            pickButtonRef={pickRefOf[category]}
+            existing={existingOf(category)}
+            baseUrl={projectId ? projectAttachmentsUrl(projectId) : null}
+            onRemove={(attachment) => removeAttachment({ projectId: projectId ?? "", attachmentId: attachment.id })}
+            disabled={saving}
+          />
+        ))}
       </form>
     </Modal>
   );

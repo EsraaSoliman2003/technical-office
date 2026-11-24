@@ -1,14 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Paperclip } from "lucide-react";
+import { CategoryAttachmentButtons } from "@/components/attachments/categories";
 import { auditColumns } from "@/components/list/columns";
 import { useCanWrite } from "@/components/list/formHelpers";
 import ListPage, { ListSuspense } from "@/components/list/ListPage";
 import type { ListColumn } from "@/components/list/ListTable";
+import { SegmentedFilter } from "@/components/list/SegmentedFilter";
 import { useListState, type ListStateOptions } from "@/components/list/useListState";
 import { Badge } from "@/components/ui";
-import { cn } from "@/lib/cn";
 import { formatAmount, formatDateOnly } from "@/lib/numbers";
 import {
   isProjectStatus,
@@ -23,7 +23,7 @@ import type {
   ProjectMaterialDto,
   ProjectSortBy,
 } from "@/types/project";
-import { PROJECT_ATTACHMENT_LABELS } from "./attachmentCategories";
+import { PROJECT_ATTACHMENT_CATEGORIES, PROJECT_ATTACHMENT_LABELS } from "./attachmentCategories";
 import ProjectAttachmentsDialog from "./ProjectAttachmentsDialog";
 import ProjectFormDialog from "./ProjectFormDialog";
 
@@ -92,28 +92,17 @@ function ProgressCell({ value }: { value: number }) {
 
 /** الكل · دراسة · جاري التنفيذ · منتهي (synced to ?status=). */
 function StatusFilter({ value, onChange }: { value: string | undefined; onChange: (value: string | null) => void }) {
-  const items = [{ value: null, label: "الكل" }, ...PROJECT_STATUSES.map((status) => ({ value: status, label: PROJECT_STATUS_LABELS[status] }))];
-  const current = isProjectStatus(value) ? value : null;
+  const items = [
+    { value: null, label: "الكل" },
+    ...PROJECT_STATUSES.map((status) => ({ value: status, label: PROJECT_STATUS_LABELS[status] })),
+  ];
   return (
-    <div role="group" aria-label="تصفية حسب موقف المشروع" className="inline-flex flex-wrap rounded-lg border border-border bg-surface-muted p-1">
-      {items.map((item) => {
-        const active = item.value === current;
-        return (
-          <button
-            key={item.label}
-            type="button"
-            aria-pressed={active}
-            onClick={() => onChange(item.value)}
-            className={cn(
-              "rounded-md px-3 py-1.5 text-sm font-semibold whitespace-nowrap",
-              active ? "bg-surface text-primary-text shadow-sm" : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            {item.label}
-          </button>
-        );
-      })}
-    </div>
+    <SegmentedFilter
+      label="تصفية حسب موقف المشروع"
+      items={items}
+      value={isProjectStatus(value) ? value : null}
+      onChange={onChange}
+    />
   );
 }
 
@@ -185,29 +174,13 @@ function ProjectsPageContent() {
         header: "المرفقات",
         className: "py-2 whitespace-nowrap",
         cell: (item) => (
-          <div className="flex items-center gap-1.5">
-            {(["materials", "offers"] as const).map((category) => {
-              const count = item.attachmentCounts[category];
-              const label = PROJECT_ATTACHMENT_LABELS[category];
-              return (
-                <button
-                  key={category}
-                  type="button"
-                  // Always enabled (focus returns here after the viewer; it shows "لا توجد مرفقات" for 0).
-                  onClick={() => setViewing({ project: item, category })}
-                  aria-label={`عرض مرفقات ${label} للمشروع ${item.name} (${count})`}
-                  title={`عرض مرفقات ${label}`}
-                  className={cn(
-                    "inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs font-semibold hover:border-primary/40 hover:bg-primary-soft hover:text-primary-text",
-                    count > 0 ? "text-foreground" : "text-muted-foreground"
-                  )}
-                >
-                  <Paperclip size={13} aria-hidden="true" />
-                  {label} (<span className="tabular-nums">{count}</span>)
-                </button>
-              );
-            })}
-          </div>
+          <CategoryAttachmentButtons
+            categories={PROJECT_ATTACHMENT_CATEGORIES}
+            labels={PROJECT_ATTACHMENT_LABELS}
+            counts={item.attachmentCounts}
+            itemName={`المشروع ${item.name}`}
+            onOpen={(category) => setViewing({ project: item, category })}
+          />
         ),
       },
       ...auditColumns<ProjectListItemDto, ProjectSortBy>({ createdAt: "createdAt", updatedAt: "updatedAt" }),
