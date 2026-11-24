@@ -1,18 +1,25 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Paperclip } from "lucide-react";
+import { Paperclip, Printer } from "lucide-react";
+import { toast } from "sonner";
 import { auditColumns } from "@/components/list/columns";
 import { useCanWrite } from "@/components/list/formHelpers";
 import ListPage, { ListSuspense } from "@/components/list/ListPage";
 import type { ListColumn } from "@/components/list/ListTable";
 import { useListState, type ListStateOptions } from "@/components/list/useListState";
-import { Combobox } from "@/components/ui";
+import { Button, Combobox } from "@/components/ui";
 import { formatQuantity } from "@/lib/numbers";
-import { useListCompanyMaterialsQuery, useRemoveCompanyMaterialMutation } from "@/rtk/endpoints/companyMaterialApi";
+import {
+  useLazyExportCompanyMaterialsQuery,
+  useListCompanyMaterialsQuery,
+  useRemoveCompanyMaterialMutation,
+} from "@/rtk/endpoints/companyMaterialApi";
 import type { CompanyMaterialFilters, CompanyMaterialItem, CompanyMaterialSortBy } from "@/types/companyMaterial";
+import { getFailureMessage, isApiFailure, NO_PERMISSION_MESSAGE } from "@/utils/apiFailure";
 import CompanyMaterialAttachmentsDialog from "./CompanyMaterialAttachmentsDialog";
 import CompanyMaterialFormDialog from "./CompanyMaterialFormDialog";
+import CompanyMaterialsPrintView, { type PrintData } from "./CompanyMaterialsPrintView";
 import { companyMaterialLabel } from "./labels";
 import { useOptionLists, type OptionList } from "./useOptionLists";
 
@@ -176,6 +183,47 @@ function CompanyMaterialsPageContent() {
   const totalQuantity = query.currentData?.totalQuantity;
   const materialName = materials.nameOf(filters.materialId);
 
+  // ---- طباعة / PDF: all rows for the current filters and sort → print view ----
+  const [exportRows] = useLazyExportCompanyMaterialsQuery();
+  const [exporting, setExporting] = useState(false);
+  const [printData, setPrintData] = useState<PrintData | null>(null);
+
+  const print = async () => {
+    if (exporting) return;
+    setExporting(true);
+    let result;
+    try {
+      result = await exportRows(
+        { search: list.params.search, sortBy: list.sortBy, sortDir: list.sortDir, ...filters },
+        false // always fresh
+      );
+    } finally {
+      setExporting(false);
+    }
+    if (result.error || !result.data) {
+      const failure = isApiFailure(result.error) ? result.error : undefined;
+      toast.error(
+        failure?.status === 400
+          ? "عدد السجلات كبير جدًا للطباعة (الحد الأقصى 5000 سجل). ضيّق نطاق البحث أو الفلاتر ثم حاول مرة أخرى."
+          : failure?.status === 403
+            ? NO_PERMISSION_MESSAGE
+            : getFailureMessage(failure)
+      );
+      return;
+    }
+    if (result.data.length === 0) {
+      toast.error("لا توجد بيانات للطباعة");
+      return;
+    }
+    const active = [
+      { label: "المشروع", value: projects.nameOf(filters.projectId) },
+      { label: "الخامة", value: materialName },
+      { label: "الشركة المنفذة", value: companies.nameOf(filters.companyId) },
+      { label: "البحث", value: list.search ? `"${list.search}"` : undefined },
+    ].filter((filter): filter is { label: string; value: string } => Boolean(filter.value));
+    setPrintData({ rows: result.data, filters: active, materialName, printedAt: new Date().toISOString() });
+  };
+
   return (
     <ListPage
       title="خامات الشركات"
@@ -189,6 +237,12 @@ function CompanyMaterialsPageContent() {
       onEdit={(item) => setDialog({ mode: "edit", item })}
       onDelete={(item) => removeRecord(item.id)}
       searchPlaceholder="بحث شامل"
+      headerActions={
+        <Button variant="secondary" onClick={print} loading={exporting}>
+          {!exporting && <Printer size={18} aria-hidden="true" />}
+          طباعة / PDF
+        </Button>
+      }
       toolbar={
         <>
           <OptionFilter
@@ -234,6 +288,10 @@ function CompanyMaterialsPageContent() {
       )}
       {viewing && (
         <CompanyMaterialAttachmentsDialog item={viewing} canWrite={canWrite} onClose={() => setViewing(null)} />
+      )}
+      {printData && (
+        // Keyed: printing again (even if the last afterprint never came) remounts and prints.
+        <CompanyMaterialsPrintView key={printData.printedAt} data={printData} onDone={() => setPrintData(null)} />
       )}
     </ListPage>
   );

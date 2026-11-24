@@ -333,3 +333,84 @@ select {
     padding-right: 15px;
   }
 }
+
+/* ===========================================
+   Print view (e.g. خامات الشركات → طباعة / PDF)
+   Only while `body.printing` is set: the app is hidden and `.print-view` (portaled to <body>)
+   is printed on A4 landscape, always light. Hidden on screen.
+=========================================== */
+
+.print-view {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+
+  html:has(body.printing),
+  body.printing {
+    background: #fff !important;
+    color: #000 !important;
+    color-scheme: light;
+  }
+
+  body.printing > *:not(.print-view) {
+    display: none !important;
+  }
+
+  body.printing > .print-view {
+    display: block;
+    color: #000;
+    background: #fff;
+    font-size: 10pt;
+    line-height: 1.5;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .print-view h1 {
+    margin: 0 0 4pt;
+    font-size: 16pt;
+    font-weight: 700;
+  }
+
+  .print-view .print-meta {
+    margin: 0 0 8pt;
+    color: #333;
+  }
+
+  .print-view table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  /* Repeat the header row on every page; never split a row. */
+  .print-view thead {
+    display: table-header-group;
+  }
+
+  .print-view tr {
+    break-inside: avoid;
+  }
+
+  .print-view th,
+  .print-view td {
+    border: 1px solid #999;
+    padding: 3pt 5pt;
+    text-align: start;
+    vertical-align: top;
+  }
+
+  .print-view th {
+    background: #eee;
+    font-weight: 700;
+  }
+
+  .print-view .print-total {
+    margin-top: 8pt;
+    font-weight: 700;
+  }
+}
