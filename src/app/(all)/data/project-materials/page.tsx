@@ -1,5 +1,5 @@
-import ProjectMaterialsPage from "@/features/project-materials/ProjectMaterialsPage";
+import MaterialDeliveriesPage from "@/components/material-deliveries/MaterialDeliveriesPage";
 
 export default function Page() {
-  return <ProjectMaterialsPage />;
+  return <MaterialDeliveriesPage />;
 }
