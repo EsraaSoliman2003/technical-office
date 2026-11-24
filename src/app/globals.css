@@ -345,7 +345,8 @@ select {
 }
 
 @media print {
-  @page {
+  /* Named page: only the print view uses A4 landscape; printing any other page keeps the defaults. */
+  @page print-view {
     size: A4 landscape;
     margin: 10mm;
   }
@@ -362,6 +363,7 @@ select {
   }
 
   body.printing > .print-view {
+    page: print-view;
     display: block;
     color: #000;
     background: #fff;
