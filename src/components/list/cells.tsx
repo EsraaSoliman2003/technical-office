@@ -1,7 +1,7 @@
 "use client";
 
 import { Paperclip } from "lucide-react";
-import { formatQuantity } from "@/lib/numbers";
+import { formatAmount, formatDateOnly, formatQuantity } from "@/lib/numbers";
 
 /** "92.300" (3 decimals, Latin digits, ltr). */
 export function QuantityText({ value }: { value: number }) {
@@ -71,4 +71,23 @@ export function TotalQuantity({ value, materialName }: { value: number | undefin
 
 export function totalQuantityLabel(materialName?: string) {
   return `إجمالي الكمية${materialName ? ` (${materialName})` : ""}`;
+}
+
+/** Money "220,000,000.00" (Latin digits, ltr), or "—" when empty. */
+export function AmountText({ value }: { value: number | null | undefined }) {
+  if (value === null || value === undefined) return "—";
+  return (
+    <span dir="ltr" className="tabular-nums">
+      {formatAmount(value)}
+    </span>
+  );
+}
+
+/** A date-only value "yyyy/MM/dd" (no timezone shift, ltr), or "—". */
+export function DateOnlyText({ value }: { value: string | null | undefined }) {
+  return (
+    <span dir="ltr" className="tabular-nums">
+      {formatDateOnly(value)}
+    </span>
+  );
 }

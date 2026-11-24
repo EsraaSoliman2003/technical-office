@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { skipToken } from "@reduxjs/toolkit/query";
 import {
   AttachmentCountButton,
+  DateOnlyText,
   LtrText,
   NotesCell,
   QuantityText,
@@ -20,7 +21,7 @@ import { useListState, type ListStateOptions } from "@/components/list/useListSt
 import { filterName, waitingForOptions } from "@/components/options/useOptionList";
 import { activeFilters, type PrintColumn } from "@/components/print/PrintView";
 import { usePrintExport } from "@/components/print/usePrintExport";
-import { formatDateOnly, formatQuantity } from "@/lib/numbers";
+import { formatQuantity } from "@/lib/numbers";
 import {
   materialDeliveryApi,
   useListMaterialDeliveriesQuery,
@@ -44,18 +45,11 @@ const SORT_COLUMNS: readonly MaterialDeliverySortBy[] = [
   "updatedAt",
 ];
 
-/** A date-only value ("yyyy/MM/dd", no timezone shift), ltr. */
-const DateOnly = ({ value }: { value: string | null }) => (
-  <span dir="ltr" className="tabular-nums">
-    {formatDateOnly(value)}
-  </span>
-);
-
 /** The business columns for طباعة / PDF (no attachments / audit / actions). */
 const PRINT_COLUMNS: PrintColumn<MaterialDeliveryItem>[] = [
   { header: "رقم التفويض", cell: (row) => <LtrText value={row.authorizationNumber} /> },
   { header: "رقم البوليصة", cell: (row) => <LtrText value={row.billOfLadingNumber} /> },
-  { header: "تاريخ البوليصة", cell: (row) => <DateOnly value={row.billDate} /> },
+  { header: "تاريخ البوليصة", cell: (row) => <DateOnlyText value={row.billDate} /> },
   { header: "اسم المشروع", cell: (row) => row.projectName },
   { header: "الخامة", cell: (row) => row.materialName },
   { header: "الكمية", cell: (row) => <span dir="ltr">{formatQuantity(row.quantity)}</span> },
@@ -127,7 +121,7 @@ function MaterialDeliveriesPageContent() {
         header: "تاريخ البوليصة",
         sortKey: "billDate",
         className: "whitespace-nowrap text-muted-foreground",
-        cell: (item) => <DateOnly value={item.billDate} />,
+        cell: (item) => <DateOnlyText value={item.billDate} />,
       },
       {
         key: "projectName",
