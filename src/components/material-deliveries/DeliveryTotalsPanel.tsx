@@ -27,6 +27,9 @@ function TotalBox({ label, value, tone }: { label: string; value: ReactNode; ton
   );
 }
 
+/** A quantity in integer thousandths (it has at most 3 decimals). */
+const toMilli = (value: number) => Math.round(value * 1000);
+
 /** Numbers left-to-right (a negative remainder keeps its sign on the left). */
 const ltr = (value: number) => (
   <span dir="ltr" className="tabular-nums">
@@ -69,10 +72,15 @@ export function DeliveryTotalsPanel({ projectId, materialId, excludeId, quantity
       </p>
     );
   } else {
-    const { approved } = currentData;
-    const dispensed = currentData.dispensed + typed;
-    const remaining = approved === null ? null : approved - dispensed;
-    const exceeded = approved !== null && dispensed > approved;
+    // In integer thousandths (3 decimals), so exact totals compare equal (no false warning,
+    // no "-0.000" from floating-point leftovers like 0.1 + 0.2).
+    const approvedMilli = currentData.approved === null ? null : toMilli(currentData.approved);
+    const dispensedMilli = toMilli(currentData.dispensed) + toMilli(typed);
+    const remainingMilli = approvedMilli === null ? null : approvedMilli - dispensedMilli;
+    const approved = approvedMilli === null ? null : approvedMilli / 1000;
+    const dispensed = dispensedMilli / 1000;
+    const remaining = remainingMilli === null ? null : remainingMilli / 1000;
+    const exceeded = remainingMilli !== null && remainingMilli < 0;
     body = (
       <>
         <dl className="grid grid-cols-1 gap-2 sm:grid-cols-3">
