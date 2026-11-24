@@ -4,6 +4,14 @@ import { api } from "../api";
 
 const listTag = (resource: LookupResource) => ({ type: "Lookup" as const, id: `${resource}:LIST` });
 const itemTag = (resource: LookupResource, id: string) => ({ type: "Lookup" as const, id: `${resource}:${id}` });
+/**
+ * Invalidated when a lookup row is renamed or deleted (not on create), for other features that
+ * show lookup names in their own data (e.g. a project's materials).
+ */
+export const lookupChangedTag = (resource: LookupResource) => ({
+  type: "Lookup" as const,
+  id: `${resource}:CHANGED`,
+});
 
 /** Generic endpoints for name-only lookups (`/api/{resource}`). Cache tags are scoped per resource. */
 export const lookupApi = api.enhanceEndpoints({ addTagTypes: ["Lookup"] }).injectEndpoints({
@@ -32,13 +40,13 @@ export const lookupApi = api.enhanceEndpoints({ addTagTypes: ["Lookup"] }).injec
     updateLookup: build.mutation<LookupDto, { resource: LookupResource; id: string; body: LookupInput }>({
       query: ({ resource, id, body }) => ({ url: `${resource}/${id}`, method: "PUT", data: body }),
       invalidatesTags: (_result, error, { resource, id }) =>
-        error ? [] : [listTag(resource), itemTag(resource, id)],
+        error ? [] : [listTag(resource), itemTag(resource, id), lookupChangedTag(resource)],
     }),
 
     removeLookup: build.mutation<void, { resource: LookupResource; id: string }>({
       query: ({ resource, id }) => ({ url: `${resource}/${id}`, method: "DELETE" }),
       invalidatesTags: (_result, error, { resource, id }) =>
-        error ? [] : [listTag(resource), itemTag(resource, id)],
+        error ? [] : [listTag(resource), itemTag(resource, id), lookupChangedTag(resource)],
     }),
   }),
 });

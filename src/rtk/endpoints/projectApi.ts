@@ -7,12 +7,15 @@ import type {
   SaveProjectRequest,
 } from "@/types/project";
 import { api } from "../api";
+import { lookupChangedTag } from "./lookupApi";
 
 const RESOURCE = "projects";
 const listTag = { type: "Project" as const, id: "LIST" };
 const itemTag = (id: string) => ({ type: "Project" as const, id });
 /** Same tag as the الخامات lookup list, so adding/renaming a material refreshes the options. */
 const materialsLookupTag = { type: "Lookup" as const, id: "materials:LIST" };
+/** Renaming/deleting a material changes the names shown in projects. */
+const materialChangedTag = lookupChangedTag("materials");
 
 /** Projects (`/api/projects`), their attachments, and the material options for the form. */
 export const projectApi = api.enhanceEndpoints({ addTagTypes: ["Project", "Lookup"] }).injectEndpoints({
@@ -22,12 +25,16 @@ export const projectApi = api.enhanceEndpoints({ addTagTypes: ["Project", "Looku
         url: RESOURCE,
         params: { ...params, ...(search ? { search } : {}), ...(status ? { status } : {}) },
       }),
-      providesTags: (result) => [listTag, ...(result?.items ?? []).map((item) => itemTag(item.id))],
+      providesTags: (result) => [
+        listTag,
+        materialChangedTag,
+        ...(result?.items ?? []).map((item) => itemTag(item.id)),
+      ],
     }),
 
     getProject: build.query<ProjectDto, string>({
       query: (id) => ({ url: `${RESOURCE}/${id}` }),
-      providesTags: (_result, _error, id) => [itemTag(id)],
+      providesTags: (_result, _error, id) => [itemTag(id), materialChangedTag],
     }),
 
     createProject: build.mutation<ProjectDto, SaveProjectRequest>({
