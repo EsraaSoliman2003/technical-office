@@ -1,5 +1,6 @@
 /**
- * Attachment rules (same as the API): PDF, JPEG, PNG, WEBP; max 10 MB per file; max 10 per company.
+ * Attachment rules (same as the API): PDF, JPEG, PNG, WEBP; max 10 MB per file; max 10 per record
+ * by default (some records allow fewer, e.g. 5 for a company material).
  * Keep the messages in line with the server's.
  */
 export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
@@ -24,11 +25,16 @@ const ALLOWED_EXTENSIONS = [".pdf", ".jpg", ".jpeg", ".jfif", ".png", ".webp"];
 /** `accept` attribute for the file input. */
 export const ATTACHMENT_ACCEPT = [...ALLOWED_MIME_TYPES, ...ALLOWED_EXTENSIONS].join(",");
 
+/** "لا يمكن أن يزيد عدد المرفقات عن {max}" */
+export function attachmentCountMessage(max: number) {
+  return `لا يمكن أن يزيد عدد المرفقات عن ${max}`;
+}
+
 export const ATTACHMENT_MESSAGES = {
   type: "نوع الملف غير مسموح. المسموح: ملفات PDF والصور (JPEG وPNG وWEBP)",
   size: "حجم الملف يجب ألا يزيد عن 10 ميجابايت",
   empty: "الملف فارغ",
-  count: `لا يمكن أن يزيد عدد المرفقات عن ${MAX_ATTACHMENTS}`,
+  count: attachmentCountMessage(MAX_ATTACHMENTS),
 };
 
 function extensionOf(name: string) {

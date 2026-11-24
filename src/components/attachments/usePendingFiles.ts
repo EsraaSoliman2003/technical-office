@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ATTACHMENT_MESSAGES,
+  attachmentCountMessage,
   MAX_ATTACHMENTS,
   MAX_UPLOAD_TOTAL_BYTES,
   UPLOAD_TOTAL_MESSAGE,
@@ -83,7 +83,7 @@ export function usePendingFiles({ existingCount, maxCount = MAX_ATTACHMENTS, dis
         totalBytes += file.size;
       }
     }
-    if (overLimit) messages.push(ATTACHMENT_MESSAGES.count);
+    if (overLimit) messages.push(attachmentCountMessage(maxCount));
     if (overTotal) messages.push(UPLOAD_TOTAL_MESSAGE);
 
     setPending((current) => [...current, ...accepted]);

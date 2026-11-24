@@ -1,26 +1,9 @@
 import { z } from "zod";
 import { checkDecimal, parseDecimal } from "@/lib/numbers";
 import { PROJECT_STATUSES } from "@/lib/projectStatus";
+import { decimalText } from "./decimalText";
 
 export const MAX_PROJECT_MATERIALS = 50;
-
-/** A typed non-negative decimal (≤ 2 places), kept as text so the field can show separators. */
-function decimalText(requiredMessage: string) {
-  return z.string().superRefine((value, ctx) => {
-    const check = checkDecimal(value);
-    const message =
-      check === "empty"
-        ? requiredMessage
-        : check === "negative"
-          ? "القيمة يجب ألا تكون سالبة"
-          : check === "invalid"
-            ? "أدخل رقمًا صحيحًا"
-            : check === "decimals"
-              ? "يُسمح برقمين عشريين فقط"
-              : null;
-    if (message) ctx.addIssue({ code: "custom", message });
-  });
-}
 
 export const getProjectSchema = () => {
   return z.object({

@@ -42,7 +42,14 @@ export function formatAmount(value: number): string {
   return amountFormat.format(value);
 }
 
-/** "2025-03-09" → "2025/03/09" — date-only text, no Date/timezone conversion. Empty → "—". */
+const quantityFormat = new Intl.NumberFormat("en-US", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+
+/** 92.3 → "92.300" (3 decimals, Latin digits, show with dir="ltr"). */
+export function formatQuantity(value: number): string {
+  return quantityFormat.format(value);
+}
+
+/** "2025-03-09" →"2025/03/09" — date-only text, no Date/timezone conversion. Empty → "—". */
 export function formatDateOnly(value: string | null | undefined): string {
   const match = value ? /^(\d{4})-(\d{2})-(\d{2})/.exec(value) : null;
   return match ? `${match[1]}/${match[2]}/${match[3]}` : "—";
