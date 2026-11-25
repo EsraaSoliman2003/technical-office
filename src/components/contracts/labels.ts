@@ -15,14 +15,15 @@ export const CONTRACT_ATTACHMENT_LABELS: Record<ContractAttachmentCategory, stri
 
 /** The journey dates' labels (in `CONTRACT_DATE_FIELDS` order). */
 export const CONTRACT_DATE_LABELS: Record<ContractDateField, string> = {
-  boqSubmissionDate: "تاريخ تقديم المقايسة",
-  supplySubmissionDate: "تاريخ تقديم التوريد",
-  authoritySubmissionDate: "تاريخ التقديم للهيئة",
+  // Same wording as the old form (the status each date gives depends on it: e.g. تموين ≠ تمويل).
+  boqSubmissionDate: "تاريخ التسليم بالمقايسات",
+  supplySubmissionDate: "تاريخ تسليم الامداد",
+  authoritySubmissionDate: "تاريخ تسليم الهيئة",
   authorityReturnDate: "تاريخ الرجوع من الهيئة",
-  authorityReturnForCompletionDate: "تاريخ الرجوع للاستيفاء",
+  authorityReturnForCompletionDate: "تاريخ الرجوع من الهيئة (استيفاء)",
   cardPrintDate: "تاريخ طباعة الكارت",
   bookletsDeliveryDate: "تاريخ تسليم الكراسات",
-  fundingDate: "تاريخ التمويل",
+  fundingDate: "تاريخ نزول التموين",
   contractDate: "تاريخ التعاقد",
 };
 

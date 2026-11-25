@@ -32,6 +32,7 @@ const SORT_COLUMNS: readonly ContractSortBy[] = [
   "projectName",
   "companyName",
   "contractValue",
+  "status",
   "contractDate",
   "createdAt",
   "updatedAt",
@@ -142,6 +143,7 @@ function ContractsPageContent() {
       {
         key: "status",
         header: "موقف العقد",
+        sortKey: "status", // the server sorts in journey order (كتيبة → … → تم التعاقد)
         className: "whitespace-nowrap",
         cell: (item) => <Badge variant="primary">{statuses.nameOf(item.status) ?? item.status}</Badge>,
       },
@@ -185,10 +187,15 @@ function ContractsPageContent() {
 
   // ---- Status counters (the old row of buttons): counts follow the other filters ----
   // The last loaded counts stay while the next page loads (no flicker when switching status).
-  const counts = listQuery.data?.statusCounts;
+  const statusCounts = listQuery.data?.statusCounts;
+  const counts = useMemo(() => {
+    if (!statusCounts) return undefined;
+    const byStatus = new Map(statusCounts.statuses.map((entry) => [entry.status, entry.count]));
+    return { all: statusCounts.all, of: (status: string) => byStatus.get(status) ?? 0 };
+  }, [statusCounts]);
   const counterItems = [
     { value: null, label: "الكل", count: counts?.all },
-    ...statuses.options.map((option) => ({ value: option.value, label: option.label, count: counts?.[option.value] })),
+    ...statuses.options.map((option) => ({ value: option.value, label: option.label, count: counts?.of(option.value) })),
   ];
 
   // ---- طباعة / PDF: all rows for the current filters and sort → print view ----

@@ -66,6 +66,7 @@ export type ContractSortBy =
   | "projectName"
   | "companyName"
   | "contractValue"
+  | "status"
   | "contractDate"
   | "createdAt"
   | "updatedAt";
@@ -85,9 +86,15 @@ export type ContractListParams = ListParams<ContractSortBy> & ContractFilters;
 export type ContractExportParams = Omit<ContractListParams, "page" | "pageSize">;
 
 /** The page plus the total value and the count per status ("all" = every status) for the other filters. */
+/** The counter buttons (from the server): every status in journey order, for all filters except status. */
+export type ContractStatusCounts = {
+  all: number;
+  statuses: { status: string; count: number }[];
+};
+
 export type ContractPage = PagedResult<ContractItem> & {
   totalValue: number;
-  statusCounts: Record<string, number>;
+  statusCounts: ContractStatusCounts;
 };
 
 export type SaveContractRequest = Omit<
