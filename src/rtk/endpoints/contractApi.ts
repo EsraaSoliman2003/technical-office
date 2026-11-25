@@ -143,5 +143,8 @@ export const contractPapersUrl = (contractId: string) => `${RESOURCE}/${contract
 export const contractPaperAttachmentsUrl = (contractId: string, paperId: string) =>
   `${contractPapersUrl(contractId)}/${paperId}/attachments`;
 
+/** Cache tags to invalidate when a contract's papers changed (also its paper counts). */
+export const contractPaperChangeTags = paperChangeTags;
+
 /** Cache tags to invalidate after uploading attachments to a paper. */
 export const contractPaperAttachmentTags = (contractId: string) => [papersTag(contractId)];
