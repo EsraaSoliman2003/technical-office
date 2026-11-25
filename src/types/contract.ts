@@ -54,6 +54,9 @@ export type ContractItem = AuditFields &
     /** = authorityValue ?? managementValue ?? battalionValue (server). */
     contractValue: number | null;
     attachmentCounts: Record<ContractAttachmentCategory, number>;
+    /** الأوراق المستلمة: all papers / those received and not sent out yet (server). */
+    paperCount: number;
+    pendingPaperCount: number;
   };
 
 export type ContractAttachmentDto = AttachmentDto & { category: ContractAttachmentCategory };
@@ -107,4 +110,22 @@ export type SaveContractRequest = Omit<
   | "status"
   | "contractValue"
   | "attachmentCounts"
+  | "paperCount"
+  | "pendingPaperCount"
 >;
+
+/** A paper received for a contract (الأوراق المستلمة خاصة بالمشروع). */
+export type ContractPaperDto = AuditFields & {
+  id: string;
+  contractId: string;
+  subject: string;
+  /** "yyyy-MM-dd" or null. */
+  receivedDate: string | null;
+  exitDate: string | null;
+  notes: string | null;
+  /** Received, not sent out yet (server). */
+  isPending: boolean;
+  attachments: AttachmentDto[];
+};
+
+export type SaveContractPaperRequest = Pick<ContractPaperDto, "subject" | "receivedDate" | "exitDate" | "notes">;
