@@ -13,6 +13,7 @@ import { FormSection as Section, ReadOnlyField } from "@/components/form/FormSec
 import { applyServerFieldErrors, isInTopDialog, useSaveShortcut } from "@/components/list/formHelpers";
 import { useListFallbackFocus } from "@/components/list/ListPage";
 import { Badge, Button, Input, Modal, Textarea } from "@/components/ui";
+import ContractStatementsSection from "@/components/statements/ContractStatementsSection";
 import { checkDecimal, formatAmount, parseDecimal } from "@/lib/numbers";
 import {
   contractApi,
@@ -161,8 +162,8 @@ const amountOf = (text: string | undefined) => (text && checkDecimal(text, 2) ==
  * المرفقات (three categories). موقف العقد and موقف السلفة are read-only: the server calculates them
  * (shown after save). Save (button, Enter outside the text areas, or F2): create/update, then
  * upload each category's new files; a failed upload can be retried without creating the contract
- * twice. Esc closes. Once the contract is saved, الأوراق المستلمة are managed below the form
- * (nested dialogs; F2 / Esc go to the top-most one). Mount it only while open.
+ * twice. Esc closes. Once the contract is saved, الأوراق المستلمة and المستخلصات are managed below
+ * the form (nested dialogs; F2 / Esc go to the top-most one). Mount it only while open.
  */
 export default function ContractFormDialog({ contract, prefill, onClose, onCreated }: ContractFormDialogProps) {
   const formId = useId();
@@ -527,6 +528,17 @@ export default function ContractFormDialog({ contract, prefill, onClose, onCreat
           ) : (
             <p className="rounded-lg border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
               احفظ العقد أولاً لإضافة الأوراق
+            </p>
+          )}
+        </Section>
+
+        {/* Same for the statements (each has its own dialog, with this contract fixed). */}
+        <Section title="المستخلصات المستلمة خاصة بالمشروع">
+          {contractId ? (
+            <ContractStatementsSection contractId={contractId} disabled={saving} />
+          ) : (
+            <p className="rounded-lg border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
+              احفظ العقد أولاً لإضافة المستخلصات
             </p>
           )}
         </Section>
