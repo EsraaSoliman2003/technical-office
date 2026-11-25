@@ -14,10 +14,10 @@ const SEGMENT_LABELS: Record<string, string> = {
   "company-materials": "خامات الشركات",
   "project-materials": "خامات المشاريع",
   contracts: "العقود",
+  statements: "المستخلصات",
   // UI drafts (not connected to the backend yet)
   "contract-report": "تقرير العقود",
   quotations: "المقايسات",
-  statements: "سلفة + مستخلص",
   deducted: "الخامات المخصومة",
 };
 
