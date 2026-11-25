@@ -498,7 +498,7 @@ function ContractsPageContent() {
   );
 }
 
-/** العقود (/contracts): status, السلفة and المستخلص counters, filters, totals, print, add/edit with papers and statements. */
+/** العقود (/contracts): status / السلفة / المستخلص counters, filters, totals, print, add/edit (papers, statements). */
 export default function ContractsPage() {
   return (
     <ListSuspense>
