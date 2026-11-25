@@ -34,9 +34,10 @@ type ListTableProps<T extends { id: string }, TSortBy extends string> = {
   actions?: RowAction<T>[];
   /** Name of a row for screen readers (e.g. in "تعديل {name}"). */
   itemLabel: (item: T) => string;
-  sortBy: TSortBy;
-  sortDir: SortDir;
-  onSort: (column: TSortBy) => void;
+  /** Current sort; omit `onSort` for a table without sortable headers. */
+  sortBy?: TSortBy;
+  sortDir?: SortDir;
+  onSort?: (column: TSortBy) => void;
   /** Minimum table width (Tailwind class); narrower screens scroll inside the card. */
   minWidthClassName?: string;
   /** Show skeleton rows instead of items. */
@@ -61,7 +62,7 @@ function SortHeader<TSortBy extends string>({
 }: {
   label: string;
   column: TSortBy;
-  sortBy: TSortBy;
+  sortBy: TSortBy | undefined;
   sortDir: SortDir;
   onSort: (column: TSortBy) => void;
 }) {
@@ -112,13 +113,13 @@ export default function ListTable<T extends { id: string }, TSortBy extends stri
         <thead className="border-b border-border bg-surface-muted text-foreground">
           <tr>
             {columns.map((column) =>
-              column.sortKey ? (
+              column.sortKey && onSort ? (
                 <SortHeader
                   key={column.key}
                   label={column.header}
                   column={column.sortKey}
                   sortBy={sortBy}
-                  sortDir={sortDir}
+                  sortDir={sortDir ?? "asc"}
                   onSort={onSort}
                 />
               ) : (
