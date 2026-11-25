@@ -5,7 +5,12 @@ export type ContractAttachmentCategory = "consultantReview" | "approvedQuantitie
 
 /** A stage or status from `/api/contracts/meta` (labels and order come from the server). */
 export type ContractMetaItem = { value: string; label: string };
-export type ContractMeta = { stages: ContractMetaItem[]; statuses: ContractMetaItem[] };
+export type ContractMeta = {
+  stages: ContractMetaItem[];
+  statuses: ContractMetaItem[];
+  /** موقف السلفة values in journey order (None … Paid). */
+  advanceStatuses: ContractMetaItem[];
+};
 
 /** The journey dates ("yyyy-MM-dd" or null), in order. */
 export const CONTRACT_DATE_FIELDS = [
@@ -34,9 +39,20 @@ export const CONTRACT_VALUE_FIELDS = [
 ] as const;
 export type ContractValueField = (typeof CONTRACT_VALUE_FIELDS)[number];
 
+/** السلفة's dates ("yyyy-MM-dd" or null), in journey order. */
+export const CONTRACT_ADVANCE_DATE_FIELDS = [
+  "advanceBrigadeDate",
+  "advanceManagementDate",
+  "advanceAuthorityDate",
+  "advanceCentralDate",
+  "advancePaymentDate",
+] as const;
+export type ContractAdvanceDateField = (typeof CONTRACT_ADVANCE_DATE_FIELDS)[number];
+
 export type ContractItem = AuditFields &
   Record<ContractDateField, string | null> &
-  Record<ContractValueField, number | null> & {
+  Record<ContractValueField, number | null> &
+  Record<ContractAdvanceDateField, string | null> & {
     id: string;
     contractNumber: string;
     name: string;
@@ -57,6 +73,10 @@ export type ContractItem = AuditFields &
     /** الأوراق المستلمة: all papers / those received and not sent out yet (server). */
     paperCount: number;
     pendingPaperCount: number;
+    /** قيمة السلفة (null = none). */
+    advanceValue: number | null;
+    /** موقف السلفة: calculated by the server from the advance value and dates (never sent). */
+    advanceStatus: string;
   };
 
 export type ContractAttachmentDto = AttachmentDto & { category: ContractAttachmentCategory };
@@ -71,6 +91,9 @@ export type ContractSortBy =
   | "contractValue"
   | "status"
   | "contractDate"
+  | "advanceStatus"
+  | "advanceValue"
+  | "advancePaymentDate"
   | "createdAt"
   | "updatedAt";
 
@@ -81,6 +104,10 @@ export type ContractFilters = {
   companyId?: string;
   status?: string;
   stage?: string;
+  /** موقف السلفة. */
+  advanceStatus?: string;
+  /** "true" = only contracts with pending papers (الأوراق المعلقة). */
+  hasPendingPapers?: string;
 };
 
 export type ContractListParams = ListParams<ContractSortBy> & ContractFilters;
@@ -95,9 +122,18 @@ export type ContractStatusCounts = {
   statuses: { status: string; count: number }[];
 };
 
+/** The السلفة counter row (from the server): count per advance status, and contracts with pending papers. */
+export type ContractAdvanceCounts = {
+  statuses: { status: string; count: number }[];
+  pendingPapers: number;
+};
+
 export type ContractPage = PagedResult<ContractItem> & {
   totalValue: number;
   statusCounts: ContractStatusCounts;
+  /** إجمالي السلف. */
+  totalAdvanceValue: number;
+  advanceCounts: ContractAdvanceCounts;
 };
 
 export type SaveContractRequest = Omit<
@@ -112,6 +148,7 @@ export type SaveContractRequest = Omit<
   | "attachmentCounts"
   | "paperCount"
   | "pendingPaperCount"
+  | "advanceStatus"
 >;
 
 /** A paper received for a contract (الأوراق المستلمة خاصة بالمشروع). */

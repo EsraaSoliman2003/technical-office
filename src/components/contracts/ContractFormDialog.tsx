@@ -24,6 +24,7 @@ import {
 } from "@/rtk/endpoints/contractApi";
 import { useAppDispatch } from "@/rtk/hooks";
 import {
+  CONTRACT_ADVANCE_DATE_FIELDS,
   CONTRACT_DATE_FIELDS,
   CONTRACT_VALUE_FIELDS,
   type ContractAttachmentCategory,
@@ -61,6 +62,12 @@ type ContractFormDialogProps = {
   onCreated?: () => void;
 };
 
+/** All the dates (journey + السلفة) and all the amounts (values + قيمة السلفة) the form sends. */
+const DATE_FIELDS = [...CONTRACT_DATE_FIELDS, ...CONTRACT_ADVANCE_DATE_FIELDS] as const;
+type DateFieldName = (typeof DATE_FIELDS)[number];
+const AMOUNT_FIELDS = [...CONTRACT_VALUE_FIELDS, "advanceValue"] as const;
+type AmountFieldName = ContractValueField | "advanceValue";
+
 const FORM_FIELDS = [
   "contractNumber",
   "name",
@@ -70,8 +77,8 @@ const FORM_FIELDS = [
   "stage",
   "notes",
   "returnReason",
-  ...CONTRACT_DATE_FIELDS,
-  ...CONTRACT_VALUE_FIELDS,
+  ...DATE_FIELDS,
+  ...AMOUNT_FIELDS,
 ] as const;
 
 const orNull = (value: string) => value || null;
@@ -86,13 +93,13 @@ function toRequest(values: ContractSchemaType): SaveContractRequest {
     stage: orNull(values.stage),
     notes: orNull(values.notes),
     returnReason: orNull(values.returnReason),
-    ...(Object.fromEntries(CONTRACT_DATE_FIELDS.map((field) => [field, orNull(values[field])])) as Pick<
+    ...(Object.fromEntries(DATE_FIELDS.map((field) => [field, orNull(values[field])])) as Pick<
       SaveContractRequest,
-      (typeof CONTRACT_DATE_FIELDS)[number]
+      DateFieldName
     >),
-    ...(Object.fromEntries(CONTRACT_VALUE_FIELDS.map((field) => [field, parseDecimal(values[field])])) as Pick<
+    ...(Object.fromEntries(AMOUNT_FIELDS.map((field) => [field, parseDecimal(values[field])])) as Pick<
       SaveContractRequest,
-      ContractValueField
+      AmountFieldName
     >),
   };
 }
@@ -107,13 +114,13 @@ function savedRequestOf(contract: ContractItem): SaveContractRequest {
     stage: contract.stage,
     notes: contract.notes,
     returnReason: contract.returnReason,
-    ...(Object.fromEntries(CONTRACT_DATE_FIELDS.map((field) => [field, contract[field]])) as Pick<
+    ...(Object.fromEntries(DATE_FIELDS.map((field) => [field, contract[field]])) as Pick<
       SaveContractRequest,
-      (typeof CONTRACT_DATE_FIELDS)[number]
+      DateFieldName
     >),
-    ...(Object.fromEntries(CONTRACT_VALUE_FIELDS.map((field) => [field, contract[field]])) as Pick<
+    ...(Object.fromEntries(AMOUNT_FIELDS.map((field) => [field, contract[field]])) as Pick<
       SaveContractRequest,
-      ContractValueField
+      AmountFieldName
     >),
   };
 }
@@ -131,16 +138,16 @@ function defaultValuesOf(
     stage: contract?.stage ?? "",
     notes: contract?.notes ?? "",
     returnReason: contract?.returnReason ?? "",
-    ...(Object.fromEntries(CONTRACT_DATE_FIELDS.map((field) => [field, contract?.[field] ?? ""])) as Pick<
+    ...(Object.fromEntries(DATE_FIELDS.map((field) => [field, contract?.[field] ?? ""])) as Pick<
       ContractFormValues,
-      (typeof CONTRACT_DATE_FIELDS)[number]
+      DateFieldName
     >),
     ...(Object.fromEntries(
-      CONTRACT_VALUE_FIELDS.map((field) => {
+      AMOUNT_FIELDS.map((field) => {
         const value = contract?.[field];
         return [field, value === null || value === undefined ? "" : formatAmount(value)];
       })
-    ) as Pick<ContractFormValues, ContractValueField>),
+    ) as Pick<ContractFormValues, AmountFieldName>),
   };
 }
 

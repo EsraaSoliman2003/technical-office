@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CONTRACT_DATE_FIELDS, CONTRACT_VALUE_FIELDS } from "@/types/contract";
+import { CONTRACT_ADVANCE_DATE_FIELDS, CONTRACT_DATE_FIELDS, CONTRACT_VALUE_FIELDS } from "@/types/contract";
 import { codeText, dateText, notesText, optionalText } from "./codeText";
 import { optionalDecimalText } from "./decimalText";
 
@@ -8,6 +8,10 @@ export const MAX_RETURN_REASON_LENGTH = 1000;
 
 const dates = Object.fromEntries(CONTRACT_DATE_FIELDS.map((field) => [field, dateText])) as Record<
   (typeof CONTRACT_DATE_FIELDS)[number],
+  typeof dateText
+>;
+const advanceDates = Object.fromEntries(CONTRACT_ADVANCE_DATE_FIELDS.map((field) => [field, dateText])) as Record<
+  (typeof CONTRACT_ADVANCE_DATE_FIELDS)[number],
   typeof dateText
 >;
 const values = Object.fromEntries(CONTRACT_VALUE_FIELDS.map((field) => [field, optionalDecimalText(2)])) as Record<
@@ -33,6 +37,9 @@ export const getContractSchema = () => {
     returnReason: optionalText(MAX_RETURN_REASON_LENGTH, `سبب الرجوع يجب ألا يزيد عن ${MAX_RETURN_REASON_LENGTH} حرف`),
     ...dates,
     ...values,
+    /** قيمة السلفة: optional, ≥ 0, 2 decimals. */
+    advanceValue: optionalDecimalText(2),
+    ...advanceDates,
   });
 };
 
