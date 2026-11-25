@@ -55,8 +55,23 @@ function printColumns(stages: OptionList, statuses: OptionList): PrintColumn<Con
     { header: "موقف العقد", cell: (row) => statuses.nameOf(row.status) ?? row.status },
     { header: "مرحلة العقد", cell: (row) => (row.stage ? (stages.nameOf(row.stage) ?? row.stage) : "—") },
     { header: "تاريخ التعاقد", cell: (row) => <span dir="ltr">{formatDateOnly(row.contractDate)}</span> },
+    { header: "الأوراق", cell: (row) => <span className="tabular-nums">{row.paperCount}</span> },
     { header: "ملاحظات", cell: (row) => row.notes || "—", multiline: true },
   ];
+}
+
+/** الأوراق: the paper count, with "2 معلقة" when some are received and not sent out yet. */
+function PaperCount({ item }: { item: ContractItem }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="tabular-nums">{item.paperCount}</span>
+      {item.pendingPaperCount > 0 && (
+        <Badge variant="accent">
+          <span className="tabular-nums">{item.pendingPaperCount}</span> معلقة
+        </Badge>
+      )}
+    </div>
+  );
 }
 
 function ContractsPageContent() {
@@ -175,6 +190,12 @@ function ContractsPageContent() {
         ),
       },
       {
+        key: "papers",
+        header: "الأوراق",
+        className: "whitespace-nowrap text-foreground",
+        cell: (item) => <PaperCount item={item} />,
+      },
+      {
         key: "notes",
         header: "ملاحظات",
         className: "text-muted-foreground",
@@ -195,7 +216,11 @@ function ContractsPageContent() {
   }, [statusCounts]);
   const counterItems = [
     { value: null, label: "الكل", count: counts?.all },
-    ...statuses.options.map((option) => ({ value: option.value, label: option.label, count: counts?.of(option.value) })),
+    ...statuses.options.map((option) => ({
+      value: option.value,
+      label: option.label,
+      count: counts?.of(option.value),
+    })),
   ];
 
   // ---- طباعة / PDF: all rows for the current filters and sort → print view ----
@@ -239,7 +264,7 @@ function ContractsPageContent() {
       query={query}
       columns={columns}
       itemLabel={contractLabel}
-      minWidthClassName="min-w-[1900px]"
+      minWidthClassName="min-w-[2000px]"
       canWrite={canWrite}
       onAdd={() => setDialog({ mode: "create" })}
       onEdit={(contract) => setDialog({ mode: "edit", contract })}
