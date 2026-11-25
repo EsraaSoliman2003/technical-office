@@ -91,3 +91,13 @@ export function DateOnlyText({ value }: { value: string | null | undefined }) {
     </span>
   );
 }
+
+/** A percentage "12.50%" (ltr), or "—" when empty. */
+export function PercentText({ value }: { value: number | null | undefined }) {
+  if (value === null || value === undefined) return "—";
+  return (
+    <span dir="ltr" className="tabular-nums">
+      {formatAmount(value)}%
+    </span>
+  );
+}
