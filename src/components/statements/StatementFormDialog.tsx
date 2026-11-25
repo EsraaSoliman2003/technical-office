@@ -195,7 +195,7 @@ export default function StatementFormDialog({
 
   // ---- بيانات العقد: from the chosen contract (and its company for السجل التجاري) ----
   const { currentData: contract, isFetching: contractLoading } = useGetContractQuery(contractId || skipToken);
-  const { currentData: company } = useGetCompanyQuery(contract?.companyId ?? skipToken);
+  const { currentData: company, isFetching: companyLoading } = useGetCompanyQuery(contract?.companyId ?? skipToken);
   // Until the contract loads, the edited statement's own copy (same contract only).
   const saved = statement && statement.contractId === contractId ? statement : undefined;
   const contractInfo = {
@@ -207,7 +207,7 @@ export default function StatementFormDialog({
     value: contract ? contract.contractValue : saved?.contractValue,
   };
   const infoText = (value: string | null | undefined) =>
-    value ? value : contractId && contractLoading ? "جاري التحميل…" : "—";
+    value ? value : contractId && (contractLoading || companyLoading) ? "جاري التحميل…" : "—";
 
   // ---- Live values ----
   const amountValue = amountOf(amount);
@@ -227,10 +227,17 @@ export default function StatementFormDialog({
   // ---- Save ----
   const showSaveError = (failure: ApiFailure | undefined) => {
     if (failure?.status === 400) {
-      const shown = applyServerFieldErrors(failure, FORM_FIELDS, (field, message, focus) =>
+      // With a fixed contract, رقم العقد is read-only text (no error slot): show its error (e.g. the contract was
+      // deleted meanwhile) as a toast instead of on the hidden field.
+      const contractError = fixedContractId
+        ? Object.entries(failure.fieldErrors).find(([key]) => key.toLowerCase() === "contractid")?.[1]?.[0]
+        : undefined;
+      if (contractError) toast.error(contractError);
+      const fields = fixedContractId ? FORM_FIELDS.filter((field) => field !== "contractId") : FORM_FIELDS;
+      const shown = applyServerFieldErrors(failure, fields, (field, message, focus) =>
         form.setError(field, { type: "server", message }, { shouldFocus: focus })
       );
-      if (shown) return;
+      if (shown || contractError) return;
     }
     // 404: the statement (or its contract) was deleted meanwhile; refresh the tables.
     const id = statementIdRef.current;

@@ -198,10 +198,17 @@ function StatementsPageContent() {
         ]),
         columns: printColumns(statuses, installments),
         rows,
-        total: {
-          label: "إجمالي قيمة المستخلصات",
-          value: formatAmount(rows.reduce((sum, row) => sum + row.amount, 0)),
-        },
+        // Summed in whole piastres (×100) so many 2-decimal amounts add up exactly.
+        total: [
+          {
+            label: "إجمالي قيمة المستخلصات",
+            value: formatAmount(rows.reduce((sum, row) => sum + Math.round(row.amount * 100), 0) / 100),
+          },
+          {
+            label: "إجمالي صافي الصرف",
+            value: formatAmount(rows.reduce((sum, row) => sum + Math.round((row.netPayment ?? 0) * 100), 0) / 100),
+          },
+        ],
         printedAt,
       })
     );

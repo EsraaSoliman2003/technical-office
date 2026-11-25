@@ -18,8 +18,8 @@ export type PrintJob<T> = {
   filters: { label: string; value: string }[];
   columns: PrintColumn<T>[];
   rows: T[];
-  /** Line under the table, e.g. "إجمالي الكمية (حديد)" + "92.300". */
-  total?: { label: string; value: string };
+  /** Line(s) under the table, e.g. "إجمالي الكمية (حديد)" + "92.300" (several → one line each). */
+  total?: { label: string; value: string } | { label: string; value: string }[];
   /** ISO time the data was exported. */
   printedAt: string;
 };
@@ -100,11 +100,12 @@ export default function PrintView<T extends { id: string }>({ job, onDone }: Pri
         </tbody>
       </table>
 
-      {job.total && (
-        <p className="print-total">
-          {job.total.label}: <span dir="ltr">{job.total.value}</span>
-        </p>
-      )}
+      {job.total &&
+        (Array.isArray(job.total) ? job.total : [job.total]).map((total) => (
+          <p key={total.label} className="print-total">
+            {total.label}: <span dir="ltr">{total.value}</span>
+          </p>
+        ))}
     </div>,
     document.body
   );

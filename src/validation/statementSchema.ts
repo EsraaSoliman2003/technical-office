@@ -11,8 +11,10 @@ import {
 import { dateText, notesText, optionalText } from "./codeText";
 import { decimalText, optionalDecimalText } from "./decimalText";
 
-/** Max length of الرتبة, الضابط, موقف التامينات, جواب مركزية and التكويد. */
+/** Max length of الضابط, موقف التامينات, جواب مركزية and التكويد. */
 export const MAX_STATEMENT_TEXT_LENGTH = 200;
+/** الرتبة is shorter on the server (100). */
+const MAX_LENGTH_OF: Partial<Record<StatementTextField, number>> = { officerRank: 100 };
 
 const dates = Object.fromEntries(STATEMENT_DATE_FIELDS.map((field) => [field, dateText])) as Record<
   StatementDateField,
@@ -22,10 +24,10 @@ const amounts = Object.fromEntries(
   STATEMENT_OPTIONAL_AMOUNT_FIELDS.map((field) => [field, optionalDecimalText(2)])
 ) as Record<StatementOptionalAmountField, ReturnType<typeof optionalDecimalText>>;
 const texts = Object.fromEntries(
-  STATEMENT_TEXT_FIELDS.map((field) => [
-    field,
-    optionalText(MAX_STATEMENT_TEXT_LENGTH, `النص يجب ألا يزيد عن ${MAX_STATEMENT_TEXT_LENGTH} حرف`),
-  ])
+  STATEMENT_TEXT_FIELDS.map((field) => {
+    const max = MAX_LENGTH_OF[field] ?? MAX_STATEMENT_TEXT_LENGTH;
+    return [field, optionalText(max, `النص يجب ألا يزيد عن ${max} حرف`)];
+  })
 ) as Record<StatementTextField, ReturnType<typeof optionalText>>;
 
 /** A valid typed amount as a number (null when empty or invalid). */

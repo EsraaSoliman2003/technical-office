@@ -114,6 +114,13 @@ function ContractsPageContent() {
   const dispatch = useAppDispatch();
   const { projects, companies, stages, statuses, advanceStatuses } = useContractLists(undefined, { full: false });
   const { statuses: statementStatuses } = useStatementLists(undefined, { contracts: false });
+  // ?statementStatus= accepts only the statuses that have a counter button (undefined while meta loads).
+  const statementCounterIds = useMemo(
+    () =>
+      statementStatuses.ids &&
+      statementStatuses.options.filter((option) => isStatementCounterStatus(option)).map((option) => option.value),
+    [statementStatuses.ids, statementStatuses.options]
+  );
 
   // رقم العقد takes any value; ids / statuses / stages / advance statuses not in their (loaded) lists are dropped
   // from the URL (hasPendingPapers: only "true").
@@ -132,10 +139,11 @@ function ContractsPageContent() {
         stage: stages.ids,
         advanceStatus: advanceStatuses.ids,
         hasPendingPapers: ["true"],
-        statementStatus: statementStatuses.ids,
+        // Only the six statuses that have a counter button (not تم الصرف), so every active filter can be cleared.
+        statementStatus: statementCounterIds,
       },
     }),
-    [projects.ids, companies.ids, statuses.ids, stages.ids, advanceStatuses.ids, statementStatuses.ids]
+    [projects.ids, companies.ids, statuses.ids, stages.ids, advanceStatuses.ids, statementCounterIds]
   );
   const list = useListState(listOptions);
   const filters: ContractFilters = {
