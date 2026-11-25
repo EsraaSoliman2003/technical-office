@@ -79,7 +79,7 @@ src/
     projects/          المشاريع screen: status filter, materials rows, attachments per category
     company-materials/ خامات الشركات screen: dropdown filters, total quantity, print / PDF view
     material-deliveries/ خامات المشاريع screen (one row per delivery): filters, totals panel, print
-    contracts/         العقود screen: status counters, filters, totals, print, sections form, الأوراق المستلمة (phase 2)
+    contracts/         العقود screen: status + السلفة counters, filters, totals, print, sections form, الأوراق المستلمة
   lib/                 axios, runtime config, session, theme, lookups list
   rtk/                 store, base API (api.ts), endpoints/, slices/
   types/               API types (auth, lookups, paged results)
