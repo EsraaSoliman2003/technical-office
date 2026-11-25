@@ -44,6 +44,7 @@ import {
 } from "@/validation/contractSchema";
 import {
   CONTRACT_ATTACHMENT_CATEGORIES,
+  CONTRACT_ADVANCE_DATE_LABELS,
   CONTRACT_ATTACHMENT_LABELS,
   CONTRACT_DATE_LABELS,
   CONTRACT_VALUE_LABELS,
@@ -181,8 +182,8 @@ function ReadOnlyField({ label, children }: { label: string; children: ReactNode
 const amountOf = (text: string | undefined) => (text && checkDecimal(text, 2) === "ok" ? parseDecimal(text) : null);
 
 /**
- * Add/edit a contract (phase 1: the contract core) in sections: بيانات العقد, التواريخ, القيم and
- * المرفقات (three categories). موقف العقد is read-only: the server calculates it from the dates
+ * Add/edit a contract in sections: بيانات العقد, التواريخ, القيم, السلفة and
+ * المرفقات (three categories). موقف العقد and موقف السلفة are read-only: the server calculates them
  * (shown after save). Save (button, Enter outside the text areas, or F2): create/update, then
  * upload each category's new files; a failed upload can be retried without creating the contract
  * twice. Esc closes. Once the contract is saved, الأوراق المستلمة are managed below the form
@@ -203,6 +204,8 @@ export default function ContractFormDialog({ contract, prefill, onClose, onCreat
   const savedRequestRef = useRef<SaveContractRequest | null>(contract ? savedRequestOf(contract) : null);
   // موقف العقد: the saved value, then the server's new value after each save.
   const [status, setStatus] = useState<string | null>(contract?.status ?? null);
+  // موقف السلفة: same (calculated by the server, never sent).
+  const [advanceStatus, setAdvanceStatus] = useState<string | null>(contract?.advanceStatus ?? null);
 
   const { currentData: details } = useGetContractQuery(contractId ?? skipToken);
   const [removeAttachment] = useRemoveContractAttachmentMutation();
@@ -282,6 +285,7 @@ export default function ContractFormDialog({ contract, prefill, onClose, onCreat
         }
         savedRequestRef.current = request;
         setStatus(result.data.status);
+        setAdvanceStatus(result.data.advanceStatus);
         if (!id) {
           id = result.data.id;
           contractIdRef.current = id;
@@ -467,28 +471,61 @@ export default function ContractFormDialog({ contract, prefill, onClose, onCreat
             </div>
           </Section>
 
-          <Section title="القيم">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {CONTRACT_VALUE_FIELDS.map((field) => (
-                <DecimalField
-                  key={field}
-                  {...common}
-                  name={field}
-                  label={CONTRACT_VALUE_LABELS[field]}
-                  decimals={2}
-                  error={errors[field]?.message}
-                />
-              ))}
-              <ReadOnlyField label="قيمة العقد">
-                <span dir="ltr" className="font-bold text-foreground tabular-nums">
-                  {previewValue === null ? "—" : formatAmount(previewValue)}
-                </span>
-              </ReadOnlyField>
+          {/* القيم and السلفة side by side on desktop (like the old form), stacked on smaller screens. */}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+              <Section title="القيم">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  {CONTRACT_VALUE_FIELDS.map((field) => (
+                    <DecimalField
+                      key={field}
+                      {...common}
+                      name={field}
+                      label={CONTRACT_VALUE_LABELS[field]}
+                      decimals={2}
+                      error={errors[field]?.message}
+                    />
+                  ))}
+                  <ReadOnlyField label="قيمة العقد">
+                    <span dir="ltr" className="font-bold text-foreground tabular-nums">
+                      {previewValue === null ? "—" : formatAmount(previewValue)}
+                    </span>
+                  </ReadOnlyField>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  قيمة العقد = قيمة الهيئة، وإلا قيمة الادارة، وإلا قيمة الكتيبة.
+                </p>
+              </Section>
             </div>
-            <p className="text-xs text-muted-foreground">
-              قيمة العقد = قيمة الهيئة، وإلا قيمة الادارة، وإلا قيمة الكتيبة.
-            </p>
-          </Section>
+
+            <Section title="السلفة">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-1">
+                <DecimalField
+                  {...common}
+                  name="advanceValue"
+                  label="قيمة السلفة"
+                  decimals={2}
+                  error={errors.advanceValue?.message}
+                />
+                {CONTRACT_ADVANCE_DATE_FIELDS.map((field) => (
+                  <DateField
+                    key={field}
+                    {...common}
+                    name={field}
+                    label={CONTRACT_ADVANCE_DATE_LABELS[field]}
+                    error={errors[field]?.message}
+                  />
+                ))}
+                <ReadOnlyField label="موقف السلفة">
+                  {advanceStatus ? (
+                    <Badge variant="primary">{lists.advanceStatuses.nameOf(advanceStatus) ?? advanceStatus}</Badge>
+                  ) : (
+                    <span className="text-muted-foreground">يُحسب بعد الحفظ</span>
+                  )}
+                </ReadOnlyField>
+              </div>
+            </Section>
+          </div>
 
           <Section title="المرفقات">
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
