@@ -77,6 +77,9 @@ export type ContractItem = AuditFields &
     advanceValue: number | null;
     /** موقف السلفة: calculated by the server from the advance value and dates (never sent). */
     advanceStatus: string;
+    /** المستخلصات: how many, and the sum of their amounts (server). */
+    statementCount: number;
+    statementsTotal: number;
   };
 
 export type ContractAttachmentDto = AttachmentDto & { category: ContractAttachmentCategory };
@@ -108,6 +111,8 @@ export type ContractFilters = {
   advanceStatus?: string;
   /** "true" = only contracts with pending papers (الأوراق المعلقة). */
   hasPendingPapers?: string;
+  /** Contracts with a statement in this موقف المستخلص. */
+  statementStatus?: string;
 };
 
 export type ContractListParams = ListParams<ContractSortBy> & ContractFilters;
@@ -134,6 +139,8 @@ export type ContractPage = PagedResult<ContractItem> & {
   /** إجمالي السلف. */
   totalAdvanceValue: number;
   advanceCounts: ContractAdvanceCounts;
+  /** The موقف المستخلص counter row: count per statement status. */
+  statementCounts: { statuses: { status: string; count: number }[] };
 };
 
 export type SaveContractRequest = Omit<
@@ -149,6 +156,8 @@ export type SaveContractRequest = Omit<
   | "paperCount"
   | "pendingPaperCount"
   | "advanceStatus"
+  | "statementCount"
+  | "statementsTotal"
 >;
 
 /** A paper received for a contract (الأوراق المستلمة خاصة بالمشروع). */

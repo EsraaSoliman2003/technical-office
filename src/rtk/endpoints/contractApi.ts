@@ -9,6 +9,7 @@ import type {
   SaveContractPaperRequest,
   SaveContractRequest,
 } from "@/types/contract";
+import type { NamedOption } from "@/types/options";
 import { api } from "../api";
 import { cleanParams } from "../queryParams";
 import { companyListTag } from "./companyApi";
@@ -45,6 +46,12 @@ export const contractApi = api
       contractMeta: build.query<ContractMeta, void>({
         query: () => ({ url: `${RESOURCE}/meta` }),
         keepUnusedDataFor: 3600,
+      }),
+
+      /** `{ id, name }` of all contracts (name = "رقم العقد — اسم العقد"), e.g. for المستخلصات. */
+      contractOptions: build.query<NamedOption[], void>({
+        query: () => ({ url: `${RESOURCE}/options` }),
+        providesTags: [listTag],
       }),
 
       getContract: build.query<ContractDto, string>({
@@ -118,6 +125,7 @@ export const contractApi = api
 export const {
   useListContractsQuery,
   useContractMetaQuery,
+  useContractOptionsQuery,
   useGetContractQuery,
   useCreateContractMutation,
   useUpdateContractMutation,
@@ -135,6 +143,9 @@ export const contractAttachmentTags = (id: string) => [listTag, itemTag(id)];
 
 /** Attachments endpoint of a contract (upload: POST with `?category=`; one file: `${url}/{attachmentId}`). */
 export const contractAttachmentsUrl = (id: string) => `${RESOURCE}/${id}/attachments`;
+
+/** The contracts list (and options): other resources invalidate it when the contract counts change. */
+export const contractListTag = listTag;
 
 /** The papers endpoint of a contract (one paper: `${url}/{paperId}`). */
 export const contractPapersUrl = (contractId: string) => `${RESOURCE}/${contractId}/papers`;
