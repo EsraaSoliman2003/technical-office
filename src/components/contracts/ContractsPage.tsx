@@ -23,7 +23,12 @@ import { useAppDispatch } from "@/rtk/hooks";
 import type { ContractAttachmentCategory, ContractFilters, ContractItem, ContractSortBy } from "@/types/contract";
 import ContractAttachmentsDialog from "./ContractAttachmentsDialog";
 import ContractFormDialog from "./ContractFormDialog";
-import { CONTRACT_ATTACHMENT_CATEGORIES, CONTRACT_ATTACHMENT_LABELS, contractLabel } from "./labels";
+import {
+  ADVANCE_COUNTER_STATUSES,
+  CONTRACT_ATTACHMENT_CATEGORIES,
+  CONTRACT_ATTACHMENT_LABELS,
+  contractLabel,
+} from "./labels";
 import { useContractLists } from "./useContractLists";
 
 const SORT_COLUMNS: readonly ContractSortBy[] = [
@@ -34,15 +39,24 @@ const SORT_COLUMNS: readonly ContractSortBy[] = [
   "contractValue",
   "status",
   "contractDate",
+  "advanceStatus",
+  "advanceValue",
   "createdAt",
   "updatedAt",
 ];
+
+/** The الأوراق المعلقة button's value in the السلفة row (not an advance status). */
+const PENDING_PAPERS = "hasPendingPapers";
 
 type DialogState = { mode: "create" } | { mode: "edit"; contract: ContractItem } | null;
 type ViewingState = { contract: ContractItem; category: ContractAttachmentCategory } | null;
 
 /** The business columns for طباعة / PDF (no attachments / audit / actions). */
-function printColumns(stages: OptionList, statuses: OptionList): PrintColumn<ContractItem>[] {
+function printColumns(
+  stages: OptionList,
+  statuses: OptionList,
+  advanceStatuses: OptionList
+): PrintColumn<ContractItem>[] {
   return [
     { header: "رقم العقد", cell: (row) => <LtrText value={row.contractNumber} /> },
     { header: "اسم العقد", cell: (row) => row.name, multiline: true },
@@ -55,6 +69,11 @@ function printColumns(stages: OptionList, statuses: OptionList): PrintColumn<Con
     { header: "موقف العقد", cell: (row) => statuses.nameOf(row.status) ?? row.status },
     { header: "مرحلة العقد", cell: (row) => (row.stage ? (stages.nameOf(row.stage) ?? row.stage) : "—") },
     { header: "تاريخ التعاقد", cell: (row) => <span dir="ltr">{formatDateOnly(row.contractDate)}</span> },
+    { header: "موقف السلفة", cell: (row) => advanceStatuses.nameOf(row.advanceStatus) ?? row.advanceStatus },
+    {
+      header: "قيمة السلفة",
+      cell: (row) => (row.advanceValue === null ? "—" : <span dir="ltr">{formatAmount(row.advanceValue)}</span>),
+    },
     { header: "الأوراق", cell: (row) => <span className="tabular-nums">{row.paperCount}</span> },
     { header: "ملاحظات", cell: (row) => row.notes || "—", multiline: true },
   ];
@@ -77,9 +96,10 @@ function PaperCount({ item }: { item: ContractItem }) {
 function ContractsPageContent() {
   const canWrite = useCanWrite();
   const dispatch = useAppDispatch();
-  const { projects, companies, stages, statuses } = useContractLists(undefined, { full: false });
+  const { projects, companies, stages, statuses, advanceStatuses } = useContractLists(undefined, { full: false });
 
-  // رقم العقد takes any value; ids / statuses / stages not in their (loaded) lists are dropped from the URL.
+  // رقم العقد takes any value; ids / statuses / stages / advance statuses not in their (loaded) lists are dropped
+  // from the URL (hasPendingPapers: only "true").
   const listOptions = useMemo<ListStateOptions<ContractSortBy>>(
     () => ({
       pageSize: 20,
@@ -93,9 +113,11 @@ function ContractsPageContent() {
         companyId: companies.ids,
         status: statuses.ids,
         stage: stages.ids,
+        advanceStatus: advanceStatuses.ids,
+        hasPendingPapers: ["true"],
       },
     }),
-    [projects.ids, companies.ids, statuses.ids, stages.ids]
+    [projects.ids, companies.ids, statuses.ids, stages.ids, advanceStatuses.ids]
   );
   const list = useListState(listOptions);
   const filters: ContractFilters = {
@@ -104,12 +126,15 @@ function ContractsPageContent() {
     companyId: list.filters.companyId,
     status: list.filters.status,
     stage: list.filters.stage,
+    advanceStatus: list.filters.advanceStatus,
+    hasPendingPapers: list.filters.hasPendingPapers,
   };
   const waiting = waitingForOptions([
     [filters.projectId, projects],
     [filters.companyId, companies],
     [filters.status, statuses],
     [filters.stage, stages],
+    [filters.advanceStatus, advanceStatuses],
   ]);
   const listQuery = useListContractsQuery(waiting ? skipToken : { ...list.params, ...filters });
   // Show the loading skeleton while waiting.
@@ -176,6 +201,22 @@ function ContractsPageContent() {
         cell: (item) => <DateOnlyText value={item.contractDate} />,
       },
       {
+        key: "advanceStatus",
+        header: "موقف السلفة",
+        sortKey: "advanceStatus", // journey order (لا توجد سلفة → … → تم الصرف)
+        className: "whitespace-nowrap",
+        cell: (item) => (
+          <Badge variant="primary">{advanceStatuses.nameOf(item.advanceStatus) ?? item.advanceStatus}</Badge>
+        ),
+      },
+      {
+        key: "advanceValue",
+        header: "قيمة السلفة",
+        sortKey: "advanceValue",
+        className: "whitespace-nowrap text-foreground",
+        cell: (item) => <AmountText value={item.advanceValue} />,
+      },
+      {
         key: "attachments",
         header: "المرفقات",
         className: "py-2 whitespace-nowrap",
@@ -203,7 +244,7 @@ function ContractsPageContent() {
       },
       ...auditColumns<ContractItem, ContractSortBy>({ createdAt: "createdAt", updatedAt: "updatedAt" }),
     ],
-    [statuses, stages, setViewing]
+    [statuses, stages, advanceStatuses, setViewing]
   );
 
   // ---- Status counters (the old row of buttons): counts follow the other filters ----
@@ -222,6 +263,32 @@ function ContractsPageContent() {
       count: counts?.of(option.value),
     })),
   ];
+
+  // ---- السلفة counters (the old second row): لواء · ادارة · هيئة · مركزية · الأوراق المعلقة ----
+  // One choice spread over ?advanceStatus= / ?hasPendingPapers=true; clicking the active one clears it.
+  const advanceCounts = listQuery.data?.advanceCounts;
+  const advanceCountOf = useMemo(() => {
+    if (!advanceCounts) return undefined;
+    const byStatus = new Map(advanceCounts.statuses.map((entry) => [entry.status, entry.count]));
+    return (status: string) => byStatus.get(status) ?? 0;
+  }, [advanceCounts]);
+  const advanceItems = [
+    ...advanceStatuses.options
+      .filter((option) => ADVANCE_COUNTER_STATUSES.includes(option.value))
+      .map((option) => ({ value: option.value, label: option.label, count: advanceCountOf?.(option.value) })),
+    { value: PENDING_PAPERS, label: "الأوراق المعلقة", count: advanceCounts?.pendingPapers },
+  ];
+  const advanceChoice = filters.hasPendingPapers ? PENDING_PAPERS : (filters.advanceStatus ?? null);
+  const chooseAdvance = (value: string | null) => {
+    if (value === null || value === advanceChoice) list.setFilters({ advanceStatus: null, hasPendingPapers: null });
+    else if (value === PENDING_PAPERS) list.setFilters({ advanceStatus: null, hasPendingPapers: "true" });
+    else list.setFilters({ advanceStatus: value, hasPendingPapers: null });
+  };
+  const advanceFilterLabel = filters.hasPendingPapers
+    ? "الأوراق المعلقة"
+    : filters.advanceStatus
+      ? (advanceStatuses.nameOf(filters.advanceStatus) ?? filters.advanceStatus)
+      : undefined;
 
   // ---- طباعة / PDF: all rows for the current filters and sort → print view ----
   const printer = usePrintExport<ContractItem>();
@@ -243,9 +310,10 @@ function ContractsPageContent() {
           ["الشركة", filterName(filters.companyId, companies, rows, (row) => row.companyName)],
           ["موقف العقد", filters.status ? (statuses.nameOf(filters.status) ?? filters.status) : undefined],
           ["مرحلة العقد", filters.stage ? (stages.nameOf(filters.stage) ?? filters.stage) : undefined],
+          ["السلفة", advanceFilterLabel],
           ["البحث", list.search ? `"${list.search}"` : undefined],
         ]),
-        columns: printColumns(stages, statuses),
+        columns: printColumns(stages, statuses, advanceStatuses),
         rows,
         total: {
           label: "إجمالي قيمة العقود",
@@ -256,6 +324,7 @@ function ContractsPageContent() {
     );
 
   const totalValue = query.currentData?.totalValue;
+  const totalAdvanceValue = query.currentData?.totalAdvanceValue;
 
   return (
     <ListPage
@@ -264,7 +333,7 @@ function ContractsPageContent() {
       query={query}
       columns={columns}
       itemLabel={contractLabel}
-      minWidthClassName="min-w-[2000px]"
+      minWidthClassName="min-w-[2250px]"
       canWrite={canWrite}
       onAdd={() => setDialog({ mode: "create" })}
       onEdit={(contract) => setDialog({ mode: "edit", contract })}
@@ -275,12 +344,23 @@ function ContractsPageContent() {
         statuses.loadError ? (
           <p className="text-sm text-danger">تعذر تحميل حالات العقود</p>
         ) : (
-          <SegmentedFilter
-            label="تصفية حسب موقف العقد"
-            items={counterItems}
-            value={filters.status}
-            onChange={(value) => list.setFilter("status", value)}
-          />
+          <div className="flex flex-col items-start gap-2">
+            <SegmentedFilter
+              label="تصفية حسب موقف العقد"
+              items={counterItems}
+              value={filters.status}
+              onChange={(value) => list.setFilter("status", value)}
+            />
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-semibold text-foreground">السلفة</span>
+              <SegmentedFilter
+                label="تصفية حسب السلفة"
+                items={advanceItems}
+                value={advanceChoice}
+                onChange={chooseAdvance}
+              />
+            </div>
+          </div>
         )
       }
       toolbar={
@@ -317,12 +397,20 @@ function ContractsPageContent() {
       countLabel="عدد العقود"
       summary={
         totalValue !== undefined && (
-          <p className="text-sm text-muted-foreground">
-            إجمالي قيمة العقود:{" "}
-            <span className="font-semibold text-foreground">
-              <AmountText value={totalValue} />
-            </span>
-          </p>
+          <div className="flex flex-wrap gap-x-6 gap-y-1">
+            <p className="text-sm text-muted-foreground">
+              إجمالي قيمة العقود:{" "}
+              <span className="font-semibold text-foreground">
+                <AmountText value={totalValue} />
+              </span>
+            </p>
+            <p className="text-sm text-muted-foreground">
+              إجمالي السلف:{" "}
+              <span className="font-semibold text-foreground">
+                <AmountText value={totalAdvanceValue} />
+              </span>
+            </p>
+          </div>
         )
       }
     >
@@ -351,7 +439,7 @@ function ContractsPageContent() {
   );
 }
 
-/** العقود (/contracts), phase 1: status counters, filters, totals, print, add/edit with attachments. */
+/** العقود (/contracts): status and السلفة counters, filters, totals, print, add/edit with attachments and papers. */
 export default function ContractsPage() {
   return (
     <ListSuspense>
