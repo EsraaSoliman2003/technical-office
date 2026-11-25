@@ -16,6 +16,8 @@ import { useListState, type ListStateOptions } from "@/components/list/useListSt
 import { filterName, waitingForOptions, type OptionList } from "@/components/options/useOptionList";
 import { activeFilters, type PrintColumn } from "@/components/print/PrintView";
 import { usePrintExport } from "@/components/print/usePrintExport";
+import { isStatementCounterStatus } from "@/components/statements/labels";
+import { useStatementLists } from "@/components/statements/useStatementLists";
 import { Badge } from "@/components/ui";
 import { formatAmount, formatDateOnly } from "@/lib/numbers";
 import { contractApi, useListContractsQuery, useRemoveContractMutation } from "@/rtk/endpoints/contractApi";
@@ -93,10 +95,25 @@ function PaperCount({ item }: { item: ContractItem }) {
   );
 }
 
+/** المستخلصات: how many, and the sum of their amounts ("2 · 1,000.00"). */
+function StatementTotals({ item }: { item: ContractItem }) {
+  if (item.statementCount === 0) return <span className="text-muted-foreground tabular-nums">0</span>;
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="tabular-nums">{item.statementCount}</span>
+      <span aria-hidden="true" className="text-muted-foreground">
+        ·
+      </span>
+      <AmountText value={item.statementsTotal} />
+    </div>
+  );
+}
+
 function ContractsPageContent() {
   const canWrite = useCanWrite();
   const dispatch = useAppDispatch();
   const { projects, companies, stages, statuses, advanceStatuses } = useContractLists(undefined, { full: false });
+  const { statuses: statementStatuses } = useStatementLists(undefined, { contracts: false });
 
   // رقم العقد takes any value; ids / statuses / stages / advance statuses not in their (loaded) lists are dropped
   // from the URL (hasPendingPapers: only "true").
@@ -115,9 +132,10 @@ function ContractsPageContent() {
         stage: stages.ids,
         advanceStatus: advanceStatuses.ids,
         hasPendingPapers: ["true"],
+        statementStatus: statementStatuses.ids,
       },
     }),
-    [projects.ids, companies.ids, statuses.ids, stages.ids, advanceStatuses.ids]
+    [projects.ids, companies.ids, statuses.ids, stages.ids, advanceStatuses.ids, statementStatuses.ids]
   );
   const list = useListState(listOptions);
   const filters: ContractFilters = {
@@ -128,6 +146,7 @@ function ContractsPageContent() {
     stage: list.filters.stage,
     advanceStatus: list.filters.advanceStatus,
     hasPendingPapers: list.filters.hasPendingPapers,
+    statementStatus: list.filters.statementStatus,
   };
   const waiting = waitingForOptions([
     [filters.projectId, projects],
@@ -135,6 +154,7 @@ function ContractsPageContent() {
     [filters.status, statuses],
     [filters.stage, stages],
     [filters.advanceStatus, advanceStatuses],
+    [filters.statementStatus, statementStatuses],
   ]);
   const listQuery = useListContractsQuery(waiting ? skipToken : { ...list.params, ...filters });
   // Show the loading skeleton while waiting.
@@ -237,6 +257,12 @@ function ContractsPageContent() {
         cell: (item) => <PaperCount item={item} />,
       },
       {
+        key: "statements",
+        header: "المستخلصات",
+        className: "whitespace-nowrap text-foreground",
+        cell: (item) => <StatementTotals item={item} />,
+      },
+      {
         key: "notes",
         header: "ملاحظات",
         className: "text-muted-foreground",
@@ -290,6 +316,20 @@ function ContractsPageContent() {
       ? (advanceStatuses.nameOf(filters.advanceStatus) ?? filters.advanceStatus)
       : undefined;
 
+  // ---- موقف المستخلص counters (third row): معلق · كتيبة · لواء · ادارة · هيئة · مركزية ----
+  // ?statementStatus= (click again → clear); counts from the page, the last ones kept while loading.
+  const statementCounts = listQuery.data?.statementCounts;
+  const statementCountOf = useMemo(() => {
+    if (!statementCounts) return undefined;
+    const byStatus = new Map(statementCounts.statuses.map((entry) => [entry.status, entry.count]));
+    return (status: string) => byStatus.get(status) ?? 0;
+  }, [statementCounts]);
+  const statementItems = statementStatuses.options
+    .filter((option) => isStatementCounterStatus(option))
+    .map((option) => ({ value: option.value, label: option.label, count: statementCountOf?.(option.value) }));
+  const chooseStatementStatus = (value: string | null) =>
+    list.setFilter("statementStatus", value === filters.statementStatus ? null : value);
+
   // ---- طباعة / PDF: all rows for the current filters and sort → print view ----
   const printer = usePrintExport<ContractItem>();
   const print = () =>
@@ -311,6 +351,12 @@ function ContractsPageContent() {
           ["موقف العقد", filters.status ? (statuses.nameOf(filters.status) ?? filters.status) : undefined],
           ["مرحلة العقد", filters.stage ? (stages.nameOf(filters.stage) ?? filters.stage) : undefined],
           ["السلفة", advanceFilterLabel],
+          [
+            "موقف المستخلص",
+            filters.statementStatus
+              ? (statementStatuses.nameOf(filters.statementStatus) ?? filters.statementStatus)
+              : undefined,
+          ],
           ["البحث", list.search ? `"${list.search}"` : undefined],
         ]),
         columns: printColumns(stages, statuses, advanceStatuses),
@@ -333,7 +379,7 @@ function ContractsPageContent() {
       query={query}
       columns={columns}
       itemLabel={contractLabel}
-      minWidthClassName="min-w-[2250px]"
+      minWidthClassName="min-w-[2400px]"
       canWrite={canWrite}
       onAdd={() => setDialog({ mode: "create" })}
       onEdit={(contract) => setDialog({ mode: "edit", contract })}
@@ -359,6 +405,19 @@ function ContractsPageContent() {
                 value={advanceChoice}
                 onChange={chooseAdvance}
               />
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-semibold text-foreground">موقف المستخلص</span>
+              {statementStatuses.loadError ? (
+                <p className="text-sm text-danger">تعذر تحميل حالات المستخلصات</p>
+              ) : (
+                <SegmentedFilter
+                  label="تصفية حسب موقف المستخلص"
+                  items={statementItems}
+                  value={filters.statementStatus}
+                  onChange={chooseStatementStatus}
+                />
+              )}
             </div>
           </div>
         )
@@ -439,7 +498,7 @@ function ContractsPageContent() {
   );
 }
 
-/** العقود (/contracts): status and السلفة counters, filters, totals, print, add/edit with attachments and papers. */
+/** العقود (/contracts): status, السلفة and المستخلص counters, filters, totals, print, add/edit with papers and statements. */
 export default function ContractsPage() {
   return (
     <ListSuspense>
