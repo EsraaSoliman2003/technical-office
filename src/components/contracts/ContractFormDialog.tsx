@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useId, useRef, useState, type RefObject } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { skipToken } from "@reduxjs/toolkit/query";
@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { CategoryAttachmentsField, uploadCategoryFiles } from "@/components/attachments/categories";
 import { usePendingFiles, useWindowFileDropGuard, type PendingFiles } from "@/components/attachments/usePendingFiles";
 import { ComboboxField, DateField, DecimalField, SelectField } from "@/components/form/fields";
+import { FormSection as Section, ReadOnlyField } from "@/components/form/FormSection";
 import { applyServerFieldErrors, isInTopDialog, useSaveShortcut } from "@/components/list/formHelpers";
 import { useListFallbackFocus } from "@/components/list/ListPage";
 import { Badge, Button, Input, Modal, Textarea } from "@/components/ui";
@@ -150,32 +151,6 @@ function defaultValuesOf(
       })
     ) as Pick<ContractFormValues, AmountFieldName>),
   };
-}
-
-/** A titled part of the form (بيانات العقد / التواريخ / القيم / المرفقات). */
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  const id = useId();
-  return (
-    <section aria-labelledby={id} className="space-y-3">
-      <h3 id={id} className="flex items-center gap-2 border-b border-border pb-2 text-sm font-bold text-foreground">
-        <span className="h-2 w-2 rotate-45 bg-accent" aria-hidden="true" />
-        {title}
-      </h3>
-      {children}
-    </section>
-  );
-}
-
-/** A read-only value shown like a field (موقف العقد, قيمة العقد). */
-function ReadOnlyField({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <span className="text-sm font-semibold text-foreground">{label}</span>
-      <div className="flex h-11 items-center rounded-lg border border-dashed border-border bg-surface-muted/60 px-3 text-sm">
-        {children}
-      </div>
-    </div>
-  );
 }
 
 /** A typed amount as a number for the preview (null when empty or invalid). */
