@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState, type RefObject } from "react";
+import { useEffect, useId, useRef, useState, type RefObject } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertTriangle } from "lucide-react";
@@ -111,6 +111,16 @@ export default function ContractPaperFormDialog({
   });
   const { errors } = form.formState;
   const notes = useWatch({ control: form.control, name: "notes" });
+
+  // The "exit before received" error sits on تاريخ الخروج but depends on تاريخ الاستلام too:
+  // re-check it when تاريخ الاستلام changes, so a fixed date clears the stale error.
+  const receivedDate = useWatch({ control: form.control, name: "receivedDate" });
+  const previousReceivedDate = useRef(receivedDate);
+  useEffect(() => {
+    if (previousReceivedDate.current === receivedDate) return;
+    previousReceivedDate.current = receivedDate;
+    if (form.getFieldState("exitDate").error) void form.trigger("exitDate");
+  }, [receivedDate, form]);
 
   const [saving, setSaving] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);

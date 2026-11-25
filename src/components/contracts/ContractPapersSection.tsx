@@ -30,7 +30,11 @@ const paperLabel = (paper: ContractPaperDto) => `الورقة "${paper.subject}"
  * with the pending badge and attachments viewer, plus إضافة / تعديل / حذف (Admin/Manager) in
  * nested dialogs. Render it outside the contract `<form>`.
  */
-export default function ContractPapersSection({ contractId }: { contractId: string }) {
+/**
+ * `disabled`: the contract itself is saving — no new paper dialogs then, because the contract dialog
+ * (and any paper dialog inside it) may close as soon as that save finishes.
+ */
+export default function ContractPapersSection({ contractId, disabled = false }: { contractId: string; disabled?: boolean }) {
   const canWrite = useCanWrite();
   const dispatch = useAppDispatch();
   const addButtonRef = useRef<HTMLButtonElement>(null);
@@ -123,8 +127,8 @@ export default function ContractPapersSection({ contractId }: { contractId: stri
 
   const actions: RowAction<ContractPaperDto>[] = canWrite
     ? [
-        { key: "edit", label: "تعديل", icon: Pencil, onClick: (paper) => setDialog({ mode: "edit", paper }) },
-        { key: "delete", label: "حذف", icon: Trash2, tone: "danger", onClick: setConfirming },
+        { key: "edit", label: "تعديل", icon: Pencil, onClick: (paper) => setDialog({ mode: "edit", paper }), disabled },
+        { key: "delete", label: "حذف", icon: Trash2, tone: "danger", onClick: setConfirming, disabled },
       ]
     : [];
 
@@ -165,7 +169,13 @@ export default function ContractPapersSection({ contractId }: { contractId: stri
     <div className="space-y-3">
       {canWrite && (
         <div className="flex justify-end">
-          <Button ref={addButtonRef} size="sm" variant="secondary" onClick={() => setDialog({ mode: "create" })}>
+          <Button
+            ref={addButtonRef}
+            size="sm"
+            variant="secondary"
+            disabled={disabled}
+            onClick={() => setDialog({ mode: "create" })}
+          >
             <Plus size={16} aria-hidden="true" />
             إضافة ورقة
           </Button>

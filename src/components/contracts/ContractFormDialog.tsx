@@ -265,6 +265,7 @@ export default function ContractFormDialog({ contract, prefill, onClose, onCreat
     try {
       const request = toRequest(values);
       let id = contractIdRef.current;
+      const isFirstSave = id === null;
 
       if (!id || JSON.stringify(request) !== JSON.stringify(savedRequestRef.current)) {
         const result = id ? await updateContract({ id, body: request }) : await createContract(request);
@@ -296,6 +297,11 @@ export default function ContractFormDialog({ contract, prefill, onClose, onCreat
         return;
       }
 
+      if (isFirstSave) {
+        // A new contract: stay open in edit mode so الأوراق المستلمة can be added right away.
+        toast.success("تم حفظ العقد، يمكنك الآن إضافة الأوراق المستلمة");
+        return;
+      }
       toast.success("تم الحفظ بنجاح");
       onClose();
     } finally {
@@ -498,7 +504,7 @@ export default function ContractFormDialog({ contract, prefill, onClose, onCreat
         {/* Outside the form: the papers are saved on their own (nested dialogs), not with the contract. */}
         <Section title="الأوراق المستلمة خاصة بالمشروع">
           {contractId ? (
-            <ContractPapersSection contractId={contractId} />
+            <ContractPapersSection contractId={contractId} disabled={saving} />
           ) : (
             <p className="rounded-lg border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
               احفظ العقد أولاً لإضافة الأوراق

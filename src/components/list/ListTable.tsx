@@ -25,6 +25,8 @@ export type RowAction<T> = {
   icon: LucideIcon;
   tone?: "accent" | "danger";
   onClick: (item: T) => void;
+  /** Temporarily unavailable (e.g. while the parent form saves). Default: enabled. */
+  disabled?: boolean;
 };
 
 type ListTableProps<T extends { id: string }, TSortBy extends string> = {
@@ -153,14 +155,19 @@ export default function ListTable<T extends { id: string }, TSortBy extends stri
                   {hasActions && (
                     <td className="px-4 py-2">
                       <div className="flex items-center justify-center gap-1">
-                        {actions.map(({ key, label, icon: Icon, tone = "accent", onClick }) => (
+                        {actions.map(({ key, label, icon: Icon, tone = "accent", onClick, disabled = false }) => (
                           <button
                             key={key}
                             type="button"
                             onClick={() => onClick(item)}
+                            disabled={disabled}
                             aria-label={`${label} ${itemLabel(item)}`}
                             title={label}
-                            className={cn("rounded-lg p-2 text-muted-foreground", actionToneClasses[tone])}
+                            className={cn(
+                              "rounded-lg p-2 text-muted-foreground",
+                              actionToneClasses[tone],
+                              "disabled:pointer-events-none disabled:opacity-50"
+                            )}
                           >
                             <Icon size={16} aria-hidden="true" />
                           </button>
