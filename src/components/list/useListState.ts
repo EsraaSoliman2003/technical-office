@@ -46,6 +46,8 @@ export type ListState<TSortBy extends string> = {
   filters: Record<string, string | undefined>;
   /** Sets (or clears with null) a filter and goes to page 1. */
   setFilter: (key: string, value: string | null) => void;
+  /** Sets / clears several filters in one URL update (e.g. one choice spread over two keys) and goes to page 1. */
+  setFilters: (values: Record<string, string | null>) => void;
 };
 
 const NO_FILTERS: Readonly<Record<string, readonly string[] | undefined>> = {};
@@ -155,6 +157,11 @@ export function useListState<TSortBy extends string>({
     [updateQuery]
   );
 
+  const setFilters = useCallback(
+    (values: Record<string, string | null>) => updateQuery({ ...values, page: null }),
+    [updateQuery]
+  );
+
   /** Also clears the filters (except the kept keys), so the new row is not hidden by one. */
   const showNewest = useCallback(
     (options?: { keepFilters?: readonly string[] }) => {
@@ -189,5 +196,6 @@ export function useListState<TSortBy extends string>({
     showNewest,
     filters,
     setFilter,
+    setFilters,
   };
 }
