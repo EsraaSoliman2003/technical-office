@@ -1,4 +1,10 @@
-import type { ContractAttachmentCategory, ContractDateField, ContractItem, ContractValueField } from "@/types/contract";
+import type {
+  ContractAdvanceDateField,
+  ContractAttachmentCategory,
+  ContractDateField,
+  ContractItem,
+  ContractValueField,
+} from "@/types/contract";
 
 /** The attachment categories, in display order. */
 export const CONTRACT_ATTACHMENT_CATEGORIES: readonly ContractAttachmentCategory[] = [
@@ -47,3 +53,15 @@ export function contractLabel(item: Pick<ContractItem, "contractNumber" | "name"
 export function contractValueOf(values: Partial<Record<ContractValueField, number | null>>): number | null {
   return values.authorityValue ?? values.managementValue ?? values.battalionValue ?? null;
 }
+
+/** السلفة's dates' labels (in `CONTRACT_ADVANCE_DATE_FIELDS` order, like the old form). */
+export const CONTRACT_ADVANCE_DATE_LABELS: Record<ContractAdvanceDateField, string> = {
+  advanceBrigadeDate: "تسليم اللواء",
+  advanceManagementDate: "تسليم الادارة",
+  advanceAuthorityDate: "تسليم الهيئة",
+  advanceCentralDate: "الادارة المركزية",
+  advancePaymentDate: "تاريخ الصرف",
+};
+
+/** The advance statuses shown as السلفة counters (like the old screen); labels come from `/meta`. */
+export const ADVANCE_COUNTER_STATUSES: readonly string[] = ["Brigade", "Management", "Authority", "Central"];
