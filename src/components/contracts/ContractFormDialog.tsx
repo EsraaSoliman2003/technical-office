@@ -48,6 +48,7 @@ import {
   CONTRACT_VALUE_LABELS,
   contractValueOf,
 } from "./labels";
+import ContractPapersSection from "./ContractPapersSection";
 import { useContractLists } from "./useContractLists";
 
 type ContractFormDialogProps = {
@@ -177,7 +178,8 @@ const amountOf = (text: string | undefined) => (text && checkDecimal(text, 2) ==
  * المرفقات (three categories). موقف العقد is read-only: the server calculates it from the dates
  * (shown after save). Save (button, Enter outside the text areas, or F2): create/update, then
  * upload each category's new files; a failed upload can be retried without creating the contract
- * twice. Esc closes. Mount it only while open.
+ * twice. Esc closes. Once the contract is saved, الأوراق المستلمة are managed below the form
+ * (nested dialogs; F2 / Esc go to the top-most one). Mount it only while open.
  */
 export default function ContractFormDialog({ contract, prefill, onClose, onCreated }: ContractFormDialogProps) {
   const formId = useId();
@@ -329,168 +331,181 @@ export default function ContractFormDialog({ contract, prefill, onClose, onCreat
         </>
       }
     >
-      <form
-        id={formId}
-        ref={formRef}
-        noValidate
-        onSubmit={(event) => {
-          if (savingRef.current) {
-            event.preventDefault(); // prevent double submit
-            return;
-          }
-          void form.handleSubmit(onSubmit)(event);
-        }}
-        className="space-y-6"
-      >
-        {uploadError && (
-          <div
-            role="alert"
-            className="flex items-start gap-2 rounded-lg border border-danger/30 bg-danger-soft px-3 py-2.5 text-sm text-danger"
-          >
-            <AlertTriangle size={18} aria-hidden="true" className="mt-0.5 shrink-0" />
-            <p>{uploadError}</p>
-          </div>
-        )}
+      <div className="space-y-6">
+        <form
+          id={formId}
+          ref={formRef}
+          noValidate
+          onSubmit={(event) => {
+            if (savingRef.current) {
+              event.preventDefault(); // prevent double submit
+              return;
+            }
+            void form.handleSubmit(onSubmit)(event);
+          }}
+          className="space-y-6"
+        >
+          {uploadError && (
+            <div
+              role="alert"
+              className="flex items-start gap-2 rounded-lg border border-danger/30 bg-danger-soft px-3 py-2.5 text-sm text-danger"
+            >
+              <AlertTriangle size={18} aria-hidden="true" className="mt-0.5 shrink-0" />
+              <p>{uploadError}</p>
+            </div>
+          )}
 
-        <Section title="بيانات العقد">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <Input
-              label="رقم العقد"
+          <Section title="بيانات العقد">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <Input
+                label="رقم العقد"
+                required
+                dir="ltr"
+                autoComplete="off"
+                data-autofocus
+                readOnly={saving}
+                error={errors.contractNumber?.message}
+                {...form.register("contractNumber")}
+              />
+              <ComboboxField
+                {...common}
+                name="projectTypeId"
+                label="نوع المشروع"
+                list={lists.projectTypes}
+                error={errors.projectTypeId?.message}
+              />
+              <ComboboxField
+                {...common}
+                name="projectId"
+                label="اسم المشروع"
+                list={lists.projects}
+                required
+                error={errors.projectId?.message}
+              />
+              <ComboboxField
+                {...common}
+                name="companyId"
+                label="الشركة المنفذة"
+                list={lists.companies}
+                required
+                error={errors.companyId?.message}
+              />
+              <SelectField
+                {...common}
+                name="stage"
+                label="مرحلة العقد"
+                list={lists.stages}
+                emptyLabel="بدون"
+                error={errors.stage?.message}
+              />
+              <ReadOnlyField label="موقف العقد">
+                {status ? (
+                  <Badge variant="primary">{lists.statuses.nameOf(status) ?? status}</Badge>
+                ) : (
+                  <span className="text-muted-foreground">يُحسب من التواريخ بعد الحفظ</span>
+                )}
+              </ReadOnlyField>
+            </div>
+            <Textarea
+              label="اسم العقد"
               required
-              dir="ltr"
-              autoComplete="off"
-              data-autofocus
+              rows={2}
               readOnly={saving}
-              error={errors.contractNumber?.message}
-              {...form.register("contractNumber")}
+              error={errors.name?.message}
+              length={name?.length ?? 0}
+              maxChars={MAX_CONTRACT_NAME_LENGTH}
+              {...form.register("name")}
             />
-            <ComboboxField
-              {...common}
-              name="projectTypeId"
-              label="نوع المشروع"
-              list={lists.projectTypes}
-              error={errors.projectTypeId?.message}
+            <Textarea
+              label="ملاحظات"
+              rows={2}
+              readOnly={saving}
+              error={errors.notes?.message}
+              length={notes?.length ?? 0}
+              maxChars={MAX_NOTES_LENGTH}
+              {...form.register("notes")}
             />
-            <ComboboxField
-              {...common}
-              name="projectId"
-              label="اسم المشروع"
-              list={lists.projects}
-              required
-              error={errors.projectId?.message}
-            />
-            <ComboboxField
-              {...common}
-              name="companyId"
-              label="الشركة المنفذة"
-              list={lists.companies}
-              required
-              error={errors.companyId?.message}
-            />
-            <SelectField
-              {...common}
-              name="stage"
-              label="مرحلة العقد"
-              list={lists.stages}
-              emptyLabel="بدون"
-              error={errors.stage?.message}
-            />
-            <ReadOnlyField label="موقف العقد">
-              {status ? (
-                <Badge variant="primary">{lists.statuses.nameOf(status) ?? status}</Badge>
-              ) : (
-                <span className="text-muted-foreground">يُحسب من التواريخ بعد الحفظ</span>
-              )}
-            </ReadOnlyField>
-          </div>
-          <Textarea
-            label="اسم العقد"
-            required
-            rows={2}
-            readOnly={saving}
-            error={errors.name?.message}
-            length={name?.length ?? 0}
-            maxChars={MAX_CONTRACT_NAME_LENGTH}
-            {...form.register("name")}
-          />
-          <Textarea
-            label="ملاحظات"
-            rows={2}
-            readOnly={saving}
-            error={errors.notes?.message}
-            length={notes?.length ?? 0}
-            maxChars={MAX_NOTES_LENGTH}
-            {...form.register("notes")}
-          />
-        </Section>
+          </Section>
 
-        <Section title="التواريخ">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {CONTRACT_DATE_FIELDS.map((field) => (
-              <div key={field} className="contents">
-                <DateField
+          <Section title="التواريخ">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {CONTRACT_DATE_FIELDS.map((field) => (
+                <div key={field} className="contents">
+                  <DateField
+                    {...common}
+                    name={field}
+                    label={CONTRACT_DATE_LABELS[field]}
+                    error={errors[field]?.message}
+                  />
+                  {field === "authorityReturnForCompletionDate" && (
+                    <Textarea
+                      label="سبب الرجوع (استيفاء)"
+                      rows={2}
+                      readOnly={saving}
+                      error={errors.returnReason?.message}
+                      length={returnReason?.length ?? 0}
+                      maxChars={MAX_RETURN_REASON_LENGTH}
+                      containerClassName="sm:col-span-1 lg:col-span-2"
+                      {...form.register("returnReason")}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          </Section>
+
+          <Section title="القيم">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {CONTRACT_VALUE_FIELDS.map((field) => (
+                <DecimalField
+                  key={field}
                   {...common}
                   name={field}
-                  label={CONTRACT_DATE_LABELS[field]}
+                  label={CONTRACT_VALUE_LABELS[field]}
+                  decimals={2}
                   error={errors[field]?.message}
                 />
-                {field === "authorityReturnForCompletionDate" && (
-                  <Textarea
-                    label="سبب الرجوع (استيفاء)"
-                    rows={2}
-                    readOnly={saving}
-                    error={errors.returnReason?.message}
-                    length={returnReason?.length ?? 0}
-                    maxChars={MAX_RETURN_REASON_LENGTH}
-                    containerClassName="sm:col-span-1 lg:col-span-2"
-                    {...form.register("returnReason")}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-        </Section>
+              ))}
+              <ReadOnlyField label="قيمة العقد">
+                <span dir="ltr" className="font-bold text-foreground tabular-nums">
+                  {previewValue === null ? "—" : formatAmount(previewValue)}
+                </span>
+              </ReadOnlyField>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              قيمة العقد = قيمة الهيئة، وإلا قيمة الادارة، وإلا قيمة الكتيبة.
+            </p>
+          </Section>
 
-        <Section title="القيم">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {CONTRACT_VALUE_FIELDS.map((field) => (
-              <DecimalField
-                key={field}
-                {...common}
-                name={field}
-                label={CONTRACT_VALUE_LABELS[field]}
-                decimals={2}
-                error={errors[field]?.message}
-              />
-            ))}
-            <ReadOnlyField label="قيمة العقد">
-              <span dir="ltr" className="font-bold text-foreground tabular-nums">
-                {previewValue === null ? "—" : formatAmount(previewValue)}
-              </span>
-            </ReadOnlyField>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            قيمة العقد = قيمة الهيئة، وإلا قيمة الادارة، وإلا قيمة الكتيبة.
-          </p>
-        </Section>
+          <Section title="المرفقات">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+              {CONTRACT_ATTACHMENT_CATEGORIES.map((category) => (
+                <CategoryAttachmentsField
+                  key={category}
+                  label={CONTRACT_ATTACHMENT_LABELS[category]}
+                  files={filesOf[category]}
+                  pickButtonRef={pickRefOf[category]}
+                  existing={existingOf(category)}
+                  baseUrl={contractId ? contractAttachmentsUrl(contractId) : null}
+                  onRemove={(attachment) => removeAttachment({ id: contractId ?? "", attachmentId: attachment.id })}
+                  disabled={saving}
+                />
+              ))}
+            </div>
+          </Section>
+        </form>
 
-        <Section title="المرفقات">
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            {CONTRACT_ATTACHMENT_CATEGORIES.map((category) => (
-              <CategoryAttachmentsField
-                key={category}
-                label={CONTRACT_ATTACHMENT_LABELS[category]}
-                files={filesOf[category]}
-                pickButtonRef={pickRefOf[category]}
-                existing={existingOf(category)}
-                baseUrl={contractId ? contractAttachmentsUrl(contractId) : null}
-                onRemove={(attachment) => removeAttachment({ id: contractId ?? "", attachmentId: attachment.id })}
-                disabled={saving}
-              />
-            ))}
-          </div>
+        {/* Outside the form: the papers are saved on their own (nested dialogs), not with the contract. */}
+        <Section title="الأوراق المستلمة خاصة بالمشروع">
+          {contractId ? (
+            <ContractPapersSection contractId={contractId} />
+          ) : (
+            <p className="rounded-lg border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
+              احفظ العقد أولاً لإضافة الأوراق
+            </p>
+          )}
         </Section>
-      </form>
+      </div>
     </Modal>
   );
 }
