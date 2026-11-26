@@ -81,7 +81,7 @@ function SortHeader<TSortBy extends string>({
           type="button"
           onClick={() => onSort(column)}
           title={`ترتيب حسب ${label}`}
-          className="flex min-w-0 flex-1 items-center gap-1.5 text-start font-semibold whitespace-nowrap hover:text-primary-text"
+          className="flex min-w-0 items-center gap-1.5 text-start font-semibold whitespace-nowrap hover:text-primary-text"
         >
           {label}
           <Icon size={14} aria-hidden="true" className={cn("shrink-0", active ? "text-primary-text" : "opacity-40")} />
@@ -103,7 +103,7 @@ function PlainHeader({
 }) {
   return (
     <th scope="col" className={cn("px-4 py-1 text-start font-semibold whitespace-nowrap", className)}>
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center gap-2">
         {label}
         {control}
       </div>
