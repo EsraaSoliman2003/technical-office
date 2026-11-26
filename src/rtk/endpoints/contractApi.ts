@@ -147,6 +147,9 @@ export const contractAttachmentsUrl = (id: string) => `${RESOURCE}/${id}/attachm
 /** The contracts list (and options): other resources invalidate it when the contract counts change. */
 export const contractListTag = listTag;
 
+/** One contract's detail (e.g. its قيمة السلفة / موقف السلفة change when its advance sheet is saved). */
+export const contractItemTag = itemTag;
+
 /** The papers endpoint of a contract (one paper: `${url}/{paperId}`). */
 export const contractPapersUrl = (contractId: string) => `${RESOURCE}/${contractId}/papers`;
 
