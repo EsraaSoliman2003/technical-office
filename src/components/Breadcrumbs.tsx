@@ -14,6 +14,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   "company-materials": "خامات الشركات",
   "project-materials": "خامات المشاريع",
   contracts: "العقود",
+  "daily-summary": "التمام اليومي",
   "advances-statements": "سلفة + مستخلص",
   advances: "السلف",
   statements: "المستخلصات",
