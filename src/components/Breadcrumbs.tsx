@@ -18,6 +18,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   "advances-statements": "سلفة + مستخلص",
   advances: "السلف",
   statements: "المستخلصات",
+  "materials-hub": "الخامات",
   // UI drafts (not connected to the backend yet)
   "contract-report": "تقرير العقود",
   quotations: "المقايسات",

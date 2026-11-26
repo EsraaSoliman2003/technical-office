@@ -14,14 +14,14 @@ import ModuleCard from "@/components/ModuleCard";
 
 type Module = { title: string; icon: LucideIcon; href?: string; draft?: boolean };
 
-// Order matches the old system. "التمام اليومي", "البيانات", "العقود" and "سلفة + مستخلص" are live; drafts are UI only (no backend yet).
+// Order matches the old system. "التمام اليومي", "البيانات", "العقود", "سلفة + مستخلص" and "الخامات" are live; drafts are UI only (no backend yet).
 const modules: Module[] = [
   { title: "موقف المشاريع", icon: Building2 },
   { title: "التمام اليومي", icon: CalendarCheck, href: "/daily-summary/" },
   { title: "البيانات", icon: Database, href: "/data/" },
   { title: "العقود", icon: FileSignature, href: "/contracts/" },
   { title: "سلفة + مستخلص", icon: ReceiptText, href: "/advances-statements/" },
-  { title: "الخامات", icon: Boxes, href: "/materials/deducted/", draft: true },
+  { title: "الخامات", icon: Boxes, href: "/materials-hub/" },
   { title: "الجوابات", icon: Mail },
   { title: "المحاضر", icon: ClipboardList },
 ];
