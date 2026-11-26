@@ -6,11 +6,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { skipToken } from "@reduxjs/toolkit/query";
 import { AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { AdvanceSheetButton } from "@/components/advances/AdvanceSheetButton";
+import AdvanceSheetFormDialog from "@/components/advances/AdvanceSheetFormDialog";
 import { CategoryAttachmentsField, uploadCategoryFiles } from "@/components/attachments/categories";
 import { usePendingFiles, useWindowFileDropGuard, type PendingFiles } from "@/components/attachments/usePendingFiles";
 import { ComboboxField, DateField, DecimalField, SelectField } from "@/components/form/fields";
 import { FormSection as Section, ReadOnlyField } from "@/components/form/FormSection";
-import { applyServerFieldErrors, isInTopDialog, useSaveShortcut } from "@/components/list/formHelpers";
+import { applyServerFieldErrors, isInTopDialog, useCanWrite, useSaveShortcut } from "@/components/list/formHelpers";
 import { useListFallbackFocus } from "@/components/list/ListPage";
 import { Badge, Button, Input, Modal, Textarea } from "@/components/ui";
 import ContractStatementsSection from "@/components/statements/ContractStatementsSection";
@@ -25,6 +27,7 @@ import {
   useUpdateContractMutation,
 } from "@/rtk/endpoints/contractApi";
 import { useAppDispatch } from "@/rtk/hooks";
+import type { AdvanceSheetItem } from "@/types/advanceSheet";
 import {
   CONTRACT_ADVANCE_DATE_FIELDS,
   CONTRACT_DATE_FIELDS,
@@ -305,6 +308,20 @@ export default function ContractFormDialog({ contract, prefill, onClose, onCreat
   const isEdit = contractId !== null;
   const common = { control: form.control, disabled: saving };
 
+  // ---- حساب قيمة السلفة (nested dialog) ----
+  const canWrite = useCanWrite();
+  const advanceSheetButtonRef = useRef<HTMLButtonElement>(null);
+  const [advanceSheetDialog, setAdvanceSheetDialog] = useState<{ sheet: AdvanceSheetItem | undefined } | null>(null);
+  // The server set this contract's قيمة السلفة / موقف السلفة from the sheet: take them, so a later
+  // contract save doesn't send the old قيمة السلفة back.
+  const applyAdvanceSheet = (sheet: AdvanceSheetItem) => {
+    form.setValue("advanceValue", sheet.requestedAmount === null ? "" : formatAmount(sheet.requestedAmount));
+    if (savedRequestRef.current) {
+      savedRequestRef.current = { ...savedRequestRef.current, advanceValue: sheet.requestedAmount };
+    }
+    setAdvanceStatus(sheet.advanceStatus);
+  };
+
   return (
     <Modal
       open
@@ -499,6 +516,14 @@ export default function ContractFormDialog({ contract, prefill, onClose, onCreat
                     <span className="text-muted-foreground">يُحسب بعد الحفظ</span>
                   )}
                 </ReadOnlyField>
+                {contractId && canWrite && (
+                  <AdvanceSheetButton
+                    contractId={contractId}
+                    disabled={saving}
+                    buttonRef={advanceSheetButtonRef}
+                    onOpen={(sheet) => setAdvanceSheetDialog({ sheet })}
+                  />
+                )}
               </div>
             </Section>
           </div>
@@ -542,6 +567,19 @@ export default function ContractFormDialog({ contract, prefill, onClose, onCreat
             </p>
           )}
         </Section>
+
+        {/* حساب قيمة السلفة (opened from the السلفة section; outside the form like the sections above). */}
+        {advanceSheetDialog && contractId && (
+          <AdvanceSheetFormDialog
+            key={advanceSheetDialog.sheet?.id ?? "create"}
+            sheet={advanceSheetDialog.sheet}
+            contractId={advanceSheetDialog.sheet ? undefined : contractId}
+            fallbackFocusRef={advanceSheetButtonRef}
+            onClose={() => setAdvanceSheetDialog(null)}
+            onSaved={applyAdvanceSheet}
+            onOpenExisting={(sheet) => setAdvanceSheetDialog({ sheet })}
+          />
+        )}
       </div>
     </Modal>
   );
