@@ -69,7 +69,7 @@ export type AdvanceSheetItem = AuditFields &
     exceedsAllowed: boolean;
   };
 
-export type AdvanceSheetSortBy = "createdAt" | "updatedAt";
+export type AdvanceSheetSortBy = "contractNumber" | "requestedAmount" | "advanceStatus" | "createdAt" | "updatedAt";
 
 export type AdvanceSheetFilters = { advanceStatus?: string };
 

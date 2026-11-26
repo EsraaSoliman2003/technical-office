@@ -25,7 +25,13 @@ import type { AdvanceSheetFilters, AdvanceSheetItem, AdvanceSheetSortBy } from "
 import AdvanceSheetFormDialog from "./AdvanceSheetFormDialog";
 import { advanceSheetLabel, EXCEEDS_ALLOWED_LABEL } from "./labels";
 
-const SORT_COLUMNS: readonly AdvanceSheetSortBy[] = ["createdAt", "updatedAt"];
+const SORT_COLUMNS: readonly AdvanceSheetSortBy[] = [
+  "contractNumber",
+  "requestedAmount",
+  "advanceStatus",
+  "createdAt",
+  "updatedAt",
+];
 
 type DialogState = { mode: "create" } | { mode: "edit"; sheet: AdvanceSheetItem } | null;
 
@@ -78,6 +84,7 @@ function AdvancesPageContent() {
       sortColumns: SORT_COLUMNS,
       defaultSortBy: "createdAt",
       defaultSortDir: "desc",
+      ascendingFirst: ["contractNumber"],
       filterValues: { advanceStatus: advanceStatuses.ids },
     }),
     [advanceStatuses.ids]
@@ -96,6 +103,7 @@ function AdvancesPageContent() {
       {
         key: "contractNumber",
         header: "رقم العقد",
+        sortKey: "contractNumber",
         className: "whitespace-nowrap font-semibold text-foreground",
         cell: (item) => <LtrText value={item.contractNumber} />,
       },
@@ -108,12 +116,14 @@ function AdvancesPageContent() {
       {
         key: "requestedAmount",
         header: "السلفة",
+        sortKey: "requestedAmount",
         className: "whitespace-nowrap text-foreground",
         cell: (item) => <RequestedCell item={item} />,
       },
       {
         key: "advanceStatus",
         header: "موقف السلفة",
+        sortKey: "advanceStatus", // the server sorts in journey order
         className: "whitespace-nowrap",
         cell: (item) => (
           <Badge variant="primary">{advanceStatuses.nameOf(item.advanceStatus) ?? item.advanceStatus}</Badge>
