@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { AttachmentUploadField } from "@/components/attachments/AttachmentUploadField";
 import { SavedAttachments } from "@/components/attachments/SavedAttachments";
 import { usePendingFiles, useWindowFileDropGuard } from "@/components/attachments/usePendingFiles";
+import { ContractNumberField, ContractSummaryFields, useContractSummary } from "@/components/contracts/ContractSummary";
 import { ComboboxField, DateField, DecimalField, SelectField } from "@/components/form/fields";
 import { FormSection, ReadOnlyField } from "@/components/form/FormSection";
 import { AmountText, PercentText } from "@/components/list/cells";
@@ -17,8 +18,6 @@ import { useListFallbackFocus } from "@/components/list/ListPage";
 import { Badge, Button, Input, Modal, Textarea } from "@/components/ui";
 import { uploadAttachments } from "@/lib/attachmentTransfer";
 import { checkDecimal, formatAmount, parseDecimal } from "@/lib/numbers";
-import { useGetCompanyQuery } from "@/rtk/endpoints/companyApi";
-import { useGetContractQuery } from "@/rtk/endpoints/contractApi";
 import {
   statementApi,
   statementAttachmentsUrl,
@@ -193,21 +192,8 @@ export default function StatementFormDialog({
     name: ["contractId", "amount", "ironValue", "cementValue", "notes"],
   });
 
-  // ---- بيانات العقد: from the chosen contract (and its company for السجل التجاري) ----
-  const { currentData: contract, isFetching: contractLoading } = useGetContractQuery(contractId || skipToken);
-  const { currentData: company, isFetching: companyLoading } = useGetCompanyQuery(contract?.companyId ?? skipToken);
-  // Until the contract loads, the edited statement's own copy (same contract only).
-  const saved = statement && statement.contractId === contractId ? statement : undefined;
-  const contractInfo = {
-    number: contract?.contractNumber ?? saved?.contractNumber,
-    name: contract?.name ?? saved?.contractName,
-    projectName: contract?.projectName ?? saved?.projectName,
-    companyName: contract?.companyName ?? saved?.companyName,
-    commercialRegister: company ? company.commercialRegister : saved?.companyCommercialRegister,
-    value: contract ? contract.contractValue : saved?.contractValue,
-  };
-  const infoText = (value: string | null | undefined) =>
-    value ? value : contractId && (contractLoading || companyLoading) ? "جاري التحميل…" : "—";
+  // ---- بيانات العقد: from the chosen contract (the edited statement's own copy until it loads) ----
+  const contractInfo = useContractSummary(contractId, statement);
 
   // ---- Live values ----
   const amountValue = amountOf(amount);
@@ -353,47 +339,23 @@ export default function StatementFormDialog({
         )}
 
         <FormSection title="بيانات العقد">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {fixedContractId ? (
-              <ReadOnlyField label="رقم العقد">
-                <span dir="ltr" className="font-semibold text-foreground">
-                  {infoText(contractInfo.number)}
-                </span>
-              </ReadOnlyField>
-            ) : (
-              <ComboboxField
-                {...common}
-                name="contractId"
-                label="رقم العقد"
-                list={lists.contracts}
-                required
-                error={errors.contractId?.message}
-              />
-            )}
-            <ReadOnlyField label="القيمة التعاقدية">
-              {contractInfo.value === null || contractInfo.value === undefined ? (
-                infoText(null)
+          <ContractSummaryFields
+            summary={contractInfo}
+            contractField={
+              fixedContractId ? (
+                <ContractNumberField summary={contractInfo} />
               ) : (
-                <span className="font-semibold text-foreground">
-                  <AmountText value={contractInfo.value} />
-                </span>
-              )}
-            </ReadOnlyField>
-            <ReadOnlyField label="السجل التجاري">
-              <span dir="ltr">{infoText(contractInfo.commercialRegister)}</span>
-            </ReadOnlyField>
-            <div className="sm:col-span-2 lg:col-span-3">
-              <ReadOnlyField label="بيان العقد">
-                <span className="whitespace-pre-line">{infoText(contractInfo.name)}</span>
-              </ReadOnlyField>
-            </div>
-            <ReadOnlyField label="اسم المشروع">{infoText(contractInfo.projectName)}</ReadOnlyField>
-            <div className="lg:col-span-2">
-              <ReadOnlyField label="اسم الشركة طبقا للموافقة الامنية">
-                {infoText(contractInfo.companyName)}
-              </ReadOnlyField>
-            </div>
-          </div>
+                <ComboboxField
+                  {...common}
+                  name="contractId"
+                  label="رقم العقد"
+                  list={lists.contracts}
+                  required
+                  error={errors.contractId?.message}
+                />
+              )
+            }
+          />
         </FormSection>
 
         <FormSection title="حساب قيمة المستخلص">
