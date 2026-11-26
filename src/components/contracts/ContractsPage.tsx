@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { skipToken } from "@reduxjs/toolkit/query";
 import { CategoryAttachmentButtons } from "@/components/attachments/categories";
 import { AmountText, DateOnlyText, LtrText, NotesCell } from "@/components/list/cells";
 import { auditColumns } from "@/components/list/columns";
+import ColumnValueFilter, { type ColumnFilterOption } from "@/components/list/ColumnValueFilter";
 import { useCanWrite } from "@/components/list/formHelpers";
 import ListPage, { ListSuspense } from "@/components/list/ListPage";
 import type { ListColumn } from "@/components/list/ListTable";
@@ -49,6 +50,84 @@ const SORT_COLUMNS: readonly ContractSortBy[] = [
 
 /** The الأوراق المعلقة button's value in the السلفة row (not an advance status). */
 const PENDING_PAPERS = "hasPendingPapers";
+
+type ContractColumnFilterKey =
+  | "contractNumber"
+  | "name"
+  | "projectName"
+  | "companyName"
+  | "contractValue"
+  | "status"
+  | "stage"
+  | "contractDate"
+  | "advanceStatus"
+  | "advanceValue";
+type ContractColumnFilters = Partial<Record<ContractColumnFilterKey, string[]>>;
+
+function getContractColumnFilterValue(item: ContractItem, key: ContractColumnFilterKey): string {
+  switch (key) {
+    case "contractNumber":
+      return item.contractNumber;
+    case "name":
+      return item.name;
+    case "projectName":
+      return item.projectName;
+    case "companyName":
+      return item.companyName;
+    case "contractValue":
+      return item.contractValue === null ? "—" : String(item.contractValue);
+    case "status":
+      return item.status;
+    case "stage":
+      return item.stage ?? "—";
+    case "contractDate":
+      return item.contractDate ?? "—";
+    case "advanceStatus":
+      return item.advanceStatus;
+    case "advanceValue":
+      return item.advanceValue === null ? "—" : String(item.advanceValue);
+  }
+}
+
+function getContractColumnFilterLabel(
+  key: ContractColumnFilterKey,
+  value: string,
+  statuses: OptionList,
+  stages: OptionList,
+  advanceStatuses: OptionList
+): string {
+  if (value === "—") return value;
+  switch (key) {
+    case "status":
+      return statuses.nameOf(value) ?? value;
+    case "stage":
+      return stages.nameOf(value) ?? value;
+    case "advanceStatus":
+      return advanceStatuses.nameOf(value) ?? value;
+    case "contractDate":
+      return formatDateOnly(value);
+    case "contractValue":
+    case "advanceValue":
+      return formatAmount(Number(value));
+    default:
+      return value;
+  }
+}
+
+function getContractColumnFilterOptions(
+  items: ContractItem[],
+  key: ContractColumnFilterKey,
+  statuses: OptionList,
+  stages: OptionList,
+  advanceStatuses: OptionList
+): ColumnFilterOption[] {
+  return Array.from(new Set(items.map((item) => getContractColumnFilterValue(item, key))))
+    .map((value) => ({
+      value,
+      label: getContractColumnFilterLabel(key, value, statuses, stages, advanceStatuses),
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label, "ar"));
+}
 
 type DialogState = { mode: "create" } | { mode: "edit"; contract: ContractItem } | null;
 type ViewingState = { contract: ContractItem; category: ContractAttachmentCategory } | null;
@@ -167,118 +246,177 @@ function ContractsPageContent() {
   const listQuery = useListContractsQuery(waiting ? skipToken : { ...list.params, ...filters });
   // Show the loading skeleton while waiting.
   const query = { ...listQuery, isFetching: listQuery.isFetching || waiting };
+  const pageItems = query.currentData?.items ?? [];
+  const filterPageKey = `${list.page}:${list.search}:${list.sortBy}:${list.sortDir}:${JSON.stringify(filters)}`;
+  const [pageFilterState, setPageFilterState] = useState<{ key: string; filters: ContractColumnFilters }>({
+    key: filterPageKey,
+    filters: {},
+  });
+  const localFilters: ContractColumnFilters =
+    pageFilterState.key === filterPageKey ? pageFilterState.filters : {};
+  const updateLocalFilter = useCallback(
+    (key: ContractColumnFilterKey, values: string[]) => {
+      setPageFilterState((current) => ({
+        key: filterPageKey,
+        filters: {
+          ...(current.key === filterPageKey ? current.filters : {}),
+          [key]: values,
+        },
+      }));
+    },
+    [filterPageKey]
+  );
+  const filteredItems = useMemo(
+    () =>
+      pageItems.filter((item) =>
+        (Object.keys(localFilters) as ContractColumnFilterKey[]).every((key) => {
+          const selected = localFilters[key];
+          return !selected?.length || selected.includes(getContractColumnFilterValue(item, key));
+        })
+      ),
+    [localFilters, pageItems]
+  );
+  const hasLocalFilters = Object.values(localFilters).some((values) => values?.length);
+  const filteredQuery = useMemo(
+    () => ({
+      ...query,
+      currentData: query.currentData ? { ...query.currentData, items: filteredItems } : undefined,
+    }),
+    [filteredItems, query]
+  );
   const [removeContract] = useRemoveContractMutation();
   const [dialog, setDialog] = useState<DialogState>(null);
   const [viewing, setViewing] = useState<ViewingState>(null);
 
   const columns = useMemo<ListColumn<ContractItem, ContractSortBy>[]>(
-    () => [
-      {
-        key: "contractNumber",
-        header: "رقم العقد",
-        sortKey: "contractNumber",
-        className: "whitespace-nowrap font-semibold text-foreground",
-        cell: (item) => <LtrText value={item.contractNumber} />,
-      },
-      {
-        key: "name",
-        header: "اسم العقد",
-        sortKey: "name",
-        className: "text-foreground",
-        cell: (item) => <NotesCell value={item.name} />,
-      },
-      {
-        key: "projectName",
-        header: "اسم المشروع",
-        sortKey: "projectName",
-        className: "text-foreground",
-        cell: (item) => item.projectName,
-      },
-      {
-        key: "companyName",
-        header: "اسم الشركة",
-        sortKey: "companyName",
-        className: "text-foreground",
-        cell: (item) => item.companyName,
-      },
-      {
-        key: "contractValue",
-        header: "قيمة العقد",
-        sortKey: "contractValue",
-        className: "whitespace-nowrap text-foreground",
-        cell: (item) => <AmountText value={item.contractValue} />,
-      },
-      {
-        key: "status",
-        header: "موقف العقد",
-        sortKey: "status", // the server sorts in journey order (كتيبة → … → تم التعاقد)
-        className: "whitespace-nowrap",
-        cell: (item) => <Badge variant="primary">{statuses.nameOf(item.status) ?? item.status}</Badge>,
-      },
-      {
-        key: "stage",
-        header: "مرحلة العقد",
-        className: "whitespace-nowrap text-muted-foreground",
-        cell: (item) => (item.stage ? (stages.nameOf(item.stage) ?? item.stage) : "—"),
-      },
-      {
-        key: "contractDate",
-        header: "تاريخ التعاقد",
-        sortKey: "contractDate",
-        className: "whitespace-nowrap text-muted-foreground",
-        cell: (item) => <DateOnlyText value={item.contractDate} />,
-      },
-      {
-        key: "advanceStatus",
-        header: "موقف السلفة",
-        sortKey: "advanceStatus", // journey order (لا توجد سلفة → … → تم الصرف)
-        className: "whitespace-nowrap",
-        cell: (item) => (
-          <Badge variant="primary">{advanceStatuses.nameOf(item.advanceStatus) ?? item.advanceStatus}</Badge>
-        ),
-      },
-      {
-        key: "advanceValue",
-        header: "قيمة السلفة",
-        sortKey: "advanceValue",
-        className: "whitespace-nowrap text-foreground",
-        cell: (item) => <AmountText value={item.advanceValue} />,
-      },
-      {
-        key: "attachments",
-        header: "المرفقات",
-        className: "py-1.5 whitespace-nowrap",
-        cell: (item) => (
-          <CategoryAttachmentButtons
-            categories={CONTRACT_ATTACHMENT_CATEGORIES}
-            labels={CONTRACT_ATTACHMENT_LABELS}
-            counts={item.attachmentCounts}
-            itemName={contractLabel(item)}
-            onOpen={(category) => setViewing({ contract: item, category })}
-          />
-        ),
-      },
-      {
-        key: "papers",
-        header: "الأوراق",
-        className: "whitespace-nowrap text-foreground",
-        cell: (item) => <PaperCount item={item} />,
-      },
-      {
-        key: "statements",
-        header: "المستخلصات",
-        className: "whitespace-nowrap text-foreground",
-        cell: (item) => <StatementTotals item={item} />,
-      },
-      {
-        key: "notes",
-        header: "ملاحظات",
-        className: "text-muted-foreground",
-        cell: (item) => <NotesCell value={item.notes} />,
-      },
-      ...auditColumns<ContractItem, ContractSortBy>({ createdAt: "createdAt", updatedAt: "updatedAt" }),
-    ],
-    [statuses, stages, advanceStatuses, setViewing]
+    () => {
+      const filterControl = (key: ContractColumnFilterKey, label: string) => (
+        <ColumnValueFilter
+          label={label}
+          options={getContractColumnFilterOptions(pageItems, key, statuses, stages, advanceStatuses)}
+          selectedValues={localFilters[key] ?? []}
+          onChange={(values) => updateLocalFilter(key, values)}
+        />
+      );
+
+      return [
+        {
+          key: "contractNumber",
+          header: "رقم العقد",
+          headerControl: filterControl("contractNumber", "رقم العقد"),
+          sortKey: "contractNumber",
+          className: "whitespace-nowrap font-semibold text-foreground",
+          cell: (item) => <LtrText value={item.contractNumber} />,
+        },
+        {
+          key: "name",
+          header: "اسم العقد",
+          headerControl: filterControl("name", "اسم العقد"),
+          sortKey: "name",
+          className: "text-foreground",
+          cell: (item) => <NotesCell value={item.name} />,
+        },
+        {
+          key: "projectName",
+          header: "اسم المشروع",
+          headerControl: filterControl("projectName", "اسم المشروع"),
+          sortKey: "projectName",
+          className: "text-foreground",
+          cell: (item) => item.projectName,
+        },
+        {
+          key: "companyName",
+          header: "اسم الشركة",
+          headerControl: filterControl("companyName", "اسم الشركة"),
+          sortKey: "companyName",
+          className: "text-foreground",
+          cell: (item) => item.companyName,
+        },
+        {
+          key: "contractValue",
+          header: "قيمة العقد",
+          headerControl: filterControl("contractValue", "قيمة العقد"),
+          sortKey: "contractValue",
+          className: "whitespace-nowrap text-foreground",
+          cell: (item) => <AmountText value={item.contractValue} />,
+        },
+        {
+          key: "status",
+          header: "موقف العقد",
+          headerControl: filterControl("status", "موقف العقد"),
+          sortKey: "status", // the server sorts in journey order (كتيبة → … → تم التعاقد)
+          className: "whitespace-nowrap",
+          cell: (item) => <Badge variant="primary">{statuses.nameOf(item.status) ?? item.status}</Badge>,
+        },
+        {
+          key: "stage",
+          header: "مرحلة العقد",
+          headerControl: filterControl("stage", "مرحلة العقد"),
+          className: "whitespace-nowrap text-muted-foreground",
+          cell: (item) => (item.stage ? (stages.nameOf(item.stage) ?? item.stage) : "—"),
+        },
+        {
+          key: "contractDate",
+          header: "تاريخ التعاقد",
+          headerControl: filterControl("contractDate", "تاريخ التعاقد"),
+          sortKey: "contractDate",
+          className: "whitespace-nowrap text-muted-foreground",
+          cell: (item) => <DateOnlyText value={item.contractDate} />,
+        },
+        {
+          key: "advanceStatus",
+          header: "موقف السلفة",
+          headerControl: filterControl("advanceStatus", "موقف السلفة"),
+          sortKey: "advanceStatus", // journey order (لا توجد سلفة → … → تم الصرف)
+          className: "whitespace-nowrap",
+          cell: (item) => (
+            <Badge variant="primary">{advanceStatuses.nameOf(item.advanceStatus) ?? item.advanceStatus}</Badge>
+          ),
+        },
+        {
+          key: "advanceValue",
+          header: "قيمة السلفة",
+          headerControl: filterControl("advanceValue", "قيمة السلفة"),
+          sortKey: "advanceValue",
+          className: "whitespace-nowrap text-foreground",
+          cell: (item) => <AmountText value={item.advanceValue} />,
+        },
+        {
+          key: "attachments",
+          header: "المرفقات",
+          className: "py-1.5 whitespace-nowrap",
+          cell: (item) => (
+            <CategoryAttachmentButtons
+              categories={CONTRACT_ATTACHMENT_CATEGORIES}
+              labels={CONTRACT_ATTACHMENT_LABELS}
+              counts={item.attachmentCounts}
+              itemName={contractLabel(item)}
+              onOpen={(category) => setViewing({ contract: item, category })}
+            />
+          ),
+        },
+        {
+          key: "papers",
+          header: "الأوراق",
+          className: "whitespace-nowrap text-foreground",
+          cell: (item) => <PaperCount item={item} />,
+        },
+        {
+          key: "statements",
+          header: "المستخلصات",
+          className: "whitespace-nowrap text-foreground",
+          cell: (item) => <StatementTotals item={item} />,
+        },
+        {
+          key: "notes",
+          header: "ملاحظات",
+          className: "text-muted-foreground",
+          cell: (item) => <NotesCell value={item.notes} />,
+        },
+        ...auditColumns<ContractItem, ContractSortBy>({ createdAt: "createdAt", updatedAt: "updatedAt" }),
+      ];
+    },
+    [advanceStatuses, localFilters, pageItems, setViewing, stages, statuses, updateLocalFilter]
   );
 
   // ---- Status counters (the old row of buttons): counts follow the other filters ----
@@ -384,27 +522,32 @@ function ContractsPageContent() {
     <ListPage
       title="العقود"
       list={list}
-      query={query}
+      query={filteredQuery}
       columns={columns}
       itemLabel={contractLabel}
       minWidthClassName="min-w-[2400px]"
       canWrite={canWrite}
+      hasLocalFilters={hasLocalFilters}
       onAdd={() => setDialog({ mode: "create" })}
       onEdit={(contract) => setDialog({ mode: "edit", contract })}
       onDelete={(contract) => removeContract(contract.id)}
       searchPlaceholder="بحث شامل"
+      showSearch={false}
       headerActions={printer.button(print)}
       topBar={
         statuses.loadError ? (
           <p className="text-sm text-danger">تعذر تحميل حالات العقود</p>
         ) : (
           <div className="flex flex-col items-start gap-2">
-            <SegmentedFilter
-              label="تصفية حسب موقف العقد"
-              items={counterItems}
-              value={filters.status}
-              onChange={(value) => list.setFilter("status", value)}
-            />
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-semibold text-foreground">موقف العقد</span>
+              <SegmentedFilter
+                label="تصفية حسب موقف العقد"
+                items={counterItems}
+                value={filters.status}
+                onChange={(value) => list.setFilter("status", value)}
+              />
+            </div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm font-semibold text-foreground">السلفة</span>
               <SegmentedFilter
@@ -430,41 +573,46 @@ function ContractsPageContent() {
           </div>
         )
       }
-      toolbar={
-        <>
-          <TextFilter
-            label="رقم العقد"
-            ltr
-            value={filters.contractNumber}
-            onChange={(value) => list.setFilter("contractNumber", value)}
-          />
-          <OptionFilter
-            label="اسم المشروع"
-            allLabel="كل المشاريع"
-            list={projects}
-            value={filters.projectId}
-            onChange={(value) => list.setFilter("projectId", value)}
-          />
-          <OptionFilter
-            label="اسم الشركة"
-            allLabel="كل الشركات"
-            list={companies}
-            value={filters.companyId}
-            onChange={(value) => list.setFilter("companyId", value)}
-          />
-          <SelectFilter
-            label="مرحلة العقد"
-            allLabel="كل المراحل"
-            list={stages}
-            value={filters.stage}
-            onChange={(value) => list.setFilter("stage", value)}
-          />
-        </>
-      }
+      // toolbar={
+      //   <>
+      //     <TextFilter
+      //       label="رقم العقد"
+      //       ltr
+      //       value={filters.contractNumber}
+      //       onChange={(value) => list.setFilter("contractNumber", value)}
+      //     />
+      //     <OptionFilter
+      //       label="اسم المشروع"
+      //       allLabel="كل المشاريع"
+      //       list={projects}
+      //       value={filters.projectId}
+      //       onChange={(value) => list.setFilter("projectId", value)}
+      //     />
+      //     <OptionFilter
+      //       label="اسم الشركة"
+      //       allLabel="كل الشركات"
+      //       list={companies}
+      //       value={filters.companyId}
+      //       onChange={(value) => list.setFilter("companyId", value)}
+      //     />
+      //     <SelectFilter
+      //       label="مرحلة العقد"
+      //       allLabel="كل المراحل"
+      //       list={stages}
+      //       value={filters.stage}
+      //       onChange={(value) => list.setFilter("stage", value)}
+      //     />
+      //   </>
+      // }
       countLabel="عدد العقود"
       summary={
         totalValue !== undefined && (
           <div className="flex flex-wrap gap-x-6 gap-y-1">
+            {hasLocalFilters && (
+              <p className="text-sm text-muted-foreground">
+                المعروض في الصفحة: {filteredItems.length} من {pageItems.length}
+              </p>
+            )}
             <p className="text-sm text-muted-foreground">
               إجمالي قيمة العقود:{" "}
               <span className="font-semibold text-foreground">
