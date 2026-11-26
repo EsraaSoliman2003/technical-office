@@ -22,7 +22,6 @@ const SEGMENT_LABELS: Record<string, string> = {
   // UI drafts (not connected to the backend yet)
   "contract-report": "تقرير العقود",
   quotations: "المقايسات",
-  deducted: "الخامات المخصومة",
 };
 
 /** Top-level pages reached through a hub page: the hub shows as their parent crumb. */
