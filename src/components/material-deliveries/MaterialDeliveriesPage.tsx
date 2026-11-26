@@ -366,10 +366,10 @@ function MaterialDeliveriesPageContent() {
       itemLabel={materialDeliveryLabel}
       minWidthClassName="min-w-[1800px]"
       canWrite={canWrite}
+      showSearch={false}
       onAdd={() => setDialog({ mode: "create" })}
       onEdit={(item) => setDialog({ mode: "edit", item })}
       onDelete={(item) => removeRecord(item.id)}
-      searchPlaceholder="بحث شامل"
       headerActions={printer.button(print)}
       hasLocalFilters={hasLocalFilters}
       summary={

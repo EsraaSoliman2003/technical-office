@@ -290,6 +290,7 @@ function ProjectsPageContent() {
       itemLabel={(item) => item.name}
       minWidthClassName="min-w-[1600px]"
       canWrite={canWrite}
+      showSearch={false}
       onAdd={() => setDialog({ mode: "create" })}
       onEdit={(item) => setDialog({ mode: "edit", item })}
       onDelete={(item) => removeProject(item.id)}
