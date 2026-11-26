@@ -58,6 +58,11 @@ type AdvanceSheetFormDialogProps = {
   onSaved?: (sheet: AdvanceSheetItem) => void;
   /** Adding, and the chosen contract already has a sheet: open that one instead. */
   onOpenExisting?: (sheet: AdvanceSheetItem) => void;
+  /**
+   * Pre-fills قيمة الدفعة المطلوب صرفها تحت الحساب (e.g. the contract dialog's unsaved قيمة السلفة);
+   * null / undefined = the sheet's own value (or empty).
+   */
+  requestedAmount?: number | null;
 };
 
 const FORM_FIELDS = [
@@ -157,6 +162,7 @@ export default function AdvanceSheetFormDialog({
   onCreated,
   onSaved,
   onOpenExisting,
+  requestedAmount,
 }: AdvanceSheetFormDialogProps) {
   const formId = useId();
   const formRef = useRef<HTMLFormElement>(null);
@@ -174,7 +180,12 @@ export default function AdvanceSheetFormDialog({
 
   const form = useForm<AdvanceSheetFormValues, unknown, AdvanceSheetSchemaType>({
     resolver: zodResolver(getAdvanceSheetSchema()),
-    defaultValues: defaultValuesOf(sheet, fixedContractId),
+    defaultValues: {
+      ...defaultValuesOf(sheet, fixedContractId),
+      ...(requestedAmount !== null && requestedAmount !== undefined
+        ? { requestedAmount: formatAmount(requestedAmount) }
+        : {}),
+    },
   });
   const { errors } = form.formState;
   const values = useWatch({ control: form.control }) as AdvanceSheetFormValues;

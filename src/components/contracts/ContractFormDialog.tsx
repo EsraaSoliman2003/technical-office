@@ -311,7 +311,13 @@ export default function ContractFormDialog({ contract, prefill, onClose, onCreat
   // ---- حساب قيمة السلفة (nested dialog) ----
   const canWrite = useCanWrite();
   const advanceSheetButtonRef = useRef<HTMLButtonElement>(null);
-  const [advanceSheetDialog, setAdvanceSheetDialog] = useState<{ sheet: AdvanceSheetItem | undefined } | null>(null);
+  // `requestedAmount`: this dialog's (maybe unsaved) قيمة السلفة when opened, pre-filled in the sheet.
+  const [advanceSheetDialog, setAdvanceSheetDialog] = useState<{
+    sheet: AdvanceSheetItem | undefined;
+    requestedAmount: number | null;
+  } | null>(null);
+  const openAdvanceSheet = (sheet: AdvanceSheetItem | undefined) =>
+    setAdvanceSheetDialog({ sheet, requestedAmount: amountOf(form.getValues("advanceValue")) });
   // The server set this contract's قيمة السلفة / موقف السلفة from the sheet: take them, so a later
   // contract save doesn't send the old قيمة السلفة back.
   const applyAdvanceSheet = (sheet: AdvanceSheetItem) => {
@@ -521,7 +527,7 @@ export default function ContractFormDialog({ contract, prefill, onClose, onCreat
                     contractId={contractId}
                     disabled={saving}
                     buttonRef={advanceSheetButtonRef}
-                    onOpen={(sheet) => setAdvanceSheetDialog({ sheet })}
+                    onOpen={openAdvanceSheet}
                   />
                 )}
               </div>
@@ -576,8 +582,9 @@ export default function ContractFormDialog({ contract, prefill, onClose, onCreat
             contractId={advanceSheetDialog.sheet ? undefined : contractId}
             fallbackFocusRef={advanceSheetButtonRef}
             onClose={() => setAdvanceSheetDialog(null)}
+            requestedAmount={advanceSheetDialog.requestedAmount}
             onSaved={applyAdvanceSheet}
-            onOpenExisting={(sheet) => setAdvanceSheetDialog({ sheet })}
+            onOpenExisting={openAdvanceSheet}
           />
         )}
       </div>
