@@ -15,27 +15,41 @@ const ZERO: Dec = { n: ZERO_BIG, s: 0 };
 
 const pow10 = (exponent: number) => TEN ** BigInt(exponent);
 
-/** "1234.50" (already validated, plain digits) → Dec. */
+/** "1234.50", or a JS number's text such as "1.5e-7" / "2e+21" → Dec (exactly those digits). */
 function parsePlain(text: string): Dec | null {
-  const match = /^(-?)(\d+)(?:\.(\d+))?$/.exec(text);
+  const match = /^(-?)(\d+)(?:\.(\d+))?(?:e([+-]?\d+))?$/i.exec(text);
   if (!match) return null;
   const fraction = match[3] ?? "";
-  const n = BigInt(match[2] + fraction);
-  return { n: match[1] ? -n : n, s: fraction.length };
+  const exponent = Number(match[4] ?? 0);
+  let n = BigInt(match[2] + fraction);
+  let s = fraction.length - exponent;
+  if (s < 0) {
+    n *= pow10(-s);
+    s = 0;
+  }
+  return { n: match[1] ? -n : n, s };
 }
 
-/** A typed amount (Arabic-Indic digits, separators): its value, or null when empty / invalid. */
+/**
+ * A typed amount (Arabic-Indic digits, separators): its value, or null when empty / invalid. A
+ * trailing "." while typing ("12.") counts as the number before it.
+ */
 export function decOfText(text: string | undefined, maxDecimals: number): Dec | null {
-  if (!text || checkDecimal(text, maxDecimals) !== "ok") return null;
-  return parsePlain(cleanDecimal(text));
+  if (!text) return null;
+  const clean = cleanDecimal(text);
+  const typed = clean.endsWith(".") ? clean.slice(0, -1) : clean;
+  if (checkDecimal(typed, maxDecimals) !== "ok") return null;
+  return parsePlain(typed);
 }
 
-/** A number from the API (a contract value or a rate such as 0.75). */
+/**
+ * A number from the API (a contract value or a rate such as 0.75), read from its exact text
+ * (`String(value)`: the shortest digits that give that number, e.g. "0.75", "214006500.5"), so the
+ * preview uses the same decimal the server sent.
+ */
 export function decOfNumber(value: number | null | undefined): Dec | null {
   if (value === null || value === undefined || !Number.isFinite(value)) return null;
-  // Rates / money have few decimals; 12 places covers them without exponent notation.
-  const text = Math.abs(value) < 1e21 ? value.toFixed(12).replace(/\.?0+$/, "") : null;
-  return text ? parsePlain(text) : null;
+  return parsePlain(String(value));
 }
 
 function align(a: Dec, b: Dec): [bigint, bigint, number] {
@@ -102,7 +116,7 @@ export type AdvanceInputs = {
 };
 
 export type AdvanceResults = Record<AdvanceSheetCalculatedField, number | null> & {
-  /** السلفة above الحد الاقصى المسموح. */
+  /** السلفة (entered) above الحد الاقصى المسموح. */
   exceedsAllowed: boolean;
   /** الحد الاقصى المسموح is below zero. */
   allowedNegative: boolean;
@@ -125,6 +139,7 @@ export function calculateAdvance(inputs: AdvanceInputs): AdvanceResults {
   const onSite = decOfNumber(inputs.rates?.onSiteRate);
 
   const statementsSpent = money(inputs.statementsSpent);
+  const requestedEntered = decOfText(inputs.requestedAmount, 2) !== null;
   const requested = money(inputs.requestedAmount);
 
   const maxByContract = v && cap ? round2(mul(v, cap)) : null;
@@ -159,7 +174,8 @@ export function calculateAdvance(inputs: AdvanceInputs): AdvanceResults {
     requestedPercent: v ? toNumber(percentOf(requested, v)) : null,
     remainingInContract: toNumber(remainingInContract),
     remainingPercent: v && remainingInContract ? toNumber(percentOf(remainingInContract, v)) : null,
-    exceedsAllowed: maxAllowedRequest !== null && compare(round2(requested), maxAllowedRequest) > 0,
+    // Only once an amount is requested (an empty السلفة is not "above" a negative maximum).
+    exceedsAllowed: requestedEntered && maxAllowedRequest !== null && compare(round2(requested), maxAllowedRequest) > 0,
     allowedNegative: maxAllowedRequest !== null && maxAllowedRequest.n < ZERO_BIG,
   };
 }
