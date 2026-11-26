@@ -67,7 +67,7 @@ The backend must allow the site's origin in its CORS settings.
 
 ```
 src/
-  app/                 routes: (auth)/login, (all)/ (protected pages: home, /data, /data/<lookup>, /contracts, /advances-statements hub, /advances, /statements)
+  app/                 routes: (auth)/login, (all)/ (protected pages: home, /data, /data/<lookup>, /contracts, /advances-statements hub, /advances, /statements, /daily-summary)
   components/          shell, guards, module cards, ui/ (Button, Input, Modal, ...)
     list/              reusable list screen: URL list state + filters, page shell, table, toolbar filters, cells
     lookup/            name-only lookup screen (built on list/)
@@ -81,6 +81,7 @@ src/
     material-deliveries/ خامات المشاريع screen (one row per delivery): filters, totals panel, print
     contracts/         العقود screen: status + السلفة + المستخلص counters, filters, totals, print, sections form, الأوراق المستلمة
     advances/          السلف screen: حساب قيمة السلفة dialog (exact live calculation in calc.ts), also opened from a contract
+    daily-summary/     التمام اليومي dashboard: the contracts list's counters per section (one request), links to filtered lists
     statements/        المستخلصات screen + the statement dialog (also opened from a contract) and the contract section
   lib/                 axios, runtime config, session, theme, lookups list
   rtk/                 store, base API (api.ts), endpoints/, slices/
