@@ -14,6 +14,8 @@ const SEGMENT_LABELS: Record<string, string> = {
   "company-materials": "خامات الشركات",
   "project-materials": "خامات المشاريع",
   contracts: "العقود",
+  "advances-statements": "سلفة + مستخلص",
+  advances: "السلف",
   statements: "المستخلصات",
   // UI drafts (not connected to the backend yet)
   "contract-report": "تقرير العقود",
@@ -21,11 +23,19 @@ const SEGMENT_LABELS: Record<string, string> = {
   deducted: "الخامات المخصومة",
 };
 
+/** Top-level pages reached through a hub page: the hub shows as their parent crumb. */
+const HUB_PARENTS: Record<string, string> = {
+  advances: "advances-statements",
+  statements: "advances-statements",
+};
+
 type Crumb = { label: string; href: string };
 
 function buildCrumbs(pathname: string): Crumb[] {
   const segments = pathname.split("/").filter(Boolean);
   const crumbs: Crumb[] = [{ label: "الرئيسية", href: "/" }];
+  const hub = segments[0] ? HUB_PARENTS[segments[0]] : undefined;
+  if (hub) crumbs.push({ label: SEGMENT_LABELS[hub], href: `/${hub}/` });
   let href = "";
   for (const segment of segments) {
     href += `/${segment}`;

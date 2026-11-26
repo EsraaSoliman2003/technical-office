@@ -20,7 +20,7 @@ const modules: Module[] = [
   { title: "التمام اليومي", icon: CalendarCheck },
   { title: "البيانات", icon: Database, href: "/data/" },
   { title: "العقود", icon: FileSignature, href: "/contracts/" },
-  { title: "سلفة + مستخلص", icon: ReceiptText, href: "/statements/" },
+  { title: "سلفة + مستخلص", icon: ReceiptText, href: "/advances-statements/" },
   { title: "الخامات", icon: Boxes, href: "/materials/deducted/", draft: true },
   { title: "الجوابات", icon: Mail },
   { title: "المحاضر", icon: ClipboardList },
