@@ -145,7 +145,7 @@ function StatementsPageContent() {
       {
         key: "attachments",
         header: "المرفقات",
-        className: "py-2 whitespace-nowrap",
+        className: "py-1.5 whitespace-nowrap",
         cell: (item) => (
           <AttachmentCountButton
             count={item.attachmentCount}

@@ -189,6 +189,12 @@ select:focus-visible,
   outline-offset: 2px;
 }
 
+.filter-search-input:focus-visible {
+  outline: none;
+  outline-offset: 0;
+  box-shadow: none;
+}
+
 ::selection {
   background-color: var(--primary);
   color: var(--primary-foreground);
@@ -223,7 +229,7 @@ select {
 }
 
 .custom-table thead th {
-  @apply whitespace-nowrap border border-white/10 px-2 py-2 text-[11px] font-semibold;
+  @apply whitespace-nowrap border border-white/10 px-2 py-1 text-[11px] font-semibold;
 }
 
 /* Header Content */
@@ -233,7 +239,13 @@ select {
 
 /* ===== Table Body ===== */
 .custom-table tbody td {
-  @apply border-b border-border px-3 py-3 text-xs text-foreground;
+  @apply border-b border-border px-3 py-1 text-xs text-foreground;
+}
+
+.data-page__table th,
+.data-page__table td {
+  padding: 4px 8px;
+  line-height: 1.25;
 }
 
 /* Empty State */

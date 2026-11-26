@@ -1,12 +1,9 @@
 "use client";
 
-import {
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
-import { Filter, Search } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { Search } from "lucide-react";
+import ColumnFilterButton from "@/components/list/ColumnFilterButton";
+import FilterPopover from "@/components/list/FilterPopover";
 
 export type DataTableColumn<T extends object> = {
   key: keyof T & string;
@@ -57,37 +54,6 @@ export default function DataTable<T extends object & { id: string | number }>({
 }: DataTableProps<T>) {
   const [filterMenu, setFilterMenu] = useState<FilterMenuState | null>(null);
   const [filterSearch, setFilterSearch] = useState("");
-  const filterMenuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!filterMenu) return;
-
-    const closeOnOutsideClick = (event: PointerEvent) => {
-      const target = event.target as Node;
-      if (
-        !filterMenuRef.current?.contains(target) &&
-        !filterMenu.anchor.contains(target)
-      ) {
-        setFilterMenu(null);
-        setFilterSearch("");
-      }
-    };
-
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setFilterMenu(null);
-        setFilterSearch("");
-      }
-    };
-
-    document.addEventListener("pointerdown", closeOnOutsideClick);
-    document.addEventListener("keydown", closeOnEscape);
-
-    return () => {
-      document.removeEventListener("pointerdown", closeOnOutsideClick);
-      document.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [filterMenu]);
 
   const getUniqueValues = (key: string) => {
     return Array.from(
@@ -161,31 +127,24 @@ export default function DataTable<T extends object & { id: string | number }>({
                   <span className="data-page__column-label">
                     <span>{column.label}</span>
                     {column.filterable !== false && (
-                      <button
-                        type="button"
-                        aria-label={`فلترة ${column.label}`}
-                        aria-pressed={Boolean(
-                          filters[column.key]?.length
-                        )}
-                        className={`entity-filter-button${filters[column.key]?.length
-                          ? " entity-filter-button--active"
-                          : ""}`}
-                        onClick={(event) => {
+                      <ColumnFilterButton
+                        label={column.label}
+                        active={Boolean(filters[column.key]?.length)}
+                        expanded={filterMenu?.key === column.key}
+                        count={filters[column.key]?.length}
+                        onClick={(button) => {
                           setFilterSearch("");
-                          setFilterMenu({
-                            anchor: event.currentTarget,
-                            key: column.key,
-                            label: column.label,
-                          });
+                          setFilterMenu((current) =>
+                            current?.key === column.key
+                              ? null
+                              : {
+                                  anchor: button,
+                                  key: column.key,
+                                  label: column.label,
+                                }
+                          );
                         }}
-                      >
-                        <Filter size={12} />
-                        {filters[column.key]?.length ? (
-                          <span className="entity-filter-button__count">
-                            {filters[column.key]?.length}
-                          </span>
-                        ) : null}
-                      </button>
+                      />
                     )}
                   </span>
                 </th>
@@ -247,47 +206,44 @@ export default function DataTable<T extends object & { id: string | number }>({
       </div>
 
       {filterMenu && (
-        <div
-          ref={filterMenuRef}
-          className="entity-filter-menu"
-          style={{
-            top: filterMenu.anchor.getBoundingClientRect().bottom + 8,
-            left: Math.max(
-              8,
-              filterMenu.anchor.getBoundingClientRect().left - 110
-            ),
+        <FilterPopover
+          anchor={filterMenu.anchor}
+          ariaLabel={`فلترة ${filterMenu.label}`}
+          className="w-64 rounded-xl border border-border bg-surface p-3 text-foreground shadow-lg"
+          onClose={() => {
+            setFilterMenu(null);
+            setFilterSearch("");
           }}
-          role="dialog"
-          aria-label={`فلترة ${filterMenu.label}`}
         >
-          <div className="entity-filter-menu__header">
-            <strong>{filterMenu.label}</strong>
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <strong className="text-xs font-semibold">{filterMenu.label}</strong>
             <button
               type="button"
-              className="entity-filter-menu__clear"
+              className="text-xs font-medium text-primary-text hover:underline"
               onClick={() => clearFilter(filterMenu.key)}
             >
               مسح
             </button>
           </div>
 
-          <label className="entity-filter-menu__search">
-            <Search size={14} />
+          <label className="mb-2 flex items-center gap-2 rounded-lg border border-border bg-surface px-2">
+            <Search size={14} aria-hidden="true" className="shrink-0 text-muted-foreground" />
             <input
               autoFocus
               type="search"
               value={filterSearch}
               placeholder="البحث في القيم..."
               aria-label={`البحث في قيم ${filterMenu.label}`}
+              className="filter-search-input h-9 min-w-0 flex-1 bg-transparent text-xs text-foreground outline-none ring-0 placeholder:text-muted-foreground focus:outline-none focus-visible:outline-none focus-visible:ring-0"
               onChange={(event) => setFilterSearch(event.target.value)}
             />
           </label>
 
-          <div className="entity-filter-menu__values">
+          <div className="max-h-56 overflow-y-auto">
             {filteredValues.map((value) => (
               <label
                 key={value}
-                className="entity-filter-menu__option"
+                className="flex cursor-pointer items-center gap-2 rounded-md px-1 py-1.5 text-xs hover:bg-surface-muted"
               >
                 <input
                   type="checkbox"
@@ -305,22 +261,23 @@ export default function DataTable<T extends object & { id: string | number }>({
             ))}
 
             {filteredValues.length === 0 && (
-              <p className="entity-filter-menu__empty">
+              <p className="py-2 text-xs text-muted-foreground">
                 لا توجد قيم مطابقة للبحث
               </p>
             )}
           </div>
 
-          <footer className="entity-filter-menu__footer">
+          <footer className="mt-2 flex justify-end border-t border-border pt-2">
             <button
               type="button"
+              className="rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-surface-muted"
               onClick={() => clearFilter(filterMenu.key)}
             >
               مسح الكل
             </button>
             <button
               type="button"
-              className="entity-filter-menu__apply"
+              className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary-hover"
               onClick={() => {
                 setFilterMenu(null);
                 setFilterSearch("");
@@ -329,7 +286,7 @@ export default function DataTable<T extends object & { id: string | number }>({
               تم
             </button>
           </footer>
-        </div>
+        </FilterPopover>
       )}
     </>
   );
