@@ -384,6 +384,14 @@ select {
     color: #333;
   }
 
+  /* A group's title (PrintJob.groups); a group is not split from its title. */
+  .print-view h2 {
+    margin: 10pt 0 4pt;
+    font-size: 12pt;
+    font-weight: 700;
+    break-after: avoid;
+  }
+
   .print-view table {
     width: 100%;
     border-collapse: collapse;

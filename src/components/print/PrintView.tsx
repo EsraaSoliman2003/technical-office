@@ -18,6 +18,11 @@ export type PrintJob<T> = {
   filters: { label: string; value: string }[];
   columns: PrintColumn<T>[];
   rows: T[];
+  /**
+   * Prints the rows as titled tables instead of one table (e.g. a dashboard's sections), all with
+   * `columns`; `rows` is then not printed and the header leaves out عدد السجلات.
+   */
+  groups?: { title: string; rows: T[] }[];
   /** Line(s) under the table, e.g. "إجمالي الكمية (حديد)" + "92.300" (several → one line each). */
   total?: { label: string; value: string } | { label: string; value: string }[];
   /** ISO time the data was exported. */
@@ -75,30 +80,24 @@ export default function PrintView<T extends { id: string }>({ job, onDone }: Pri
         {job.filters.length > 0 ? job.filters.map((filter) => `${filter.label}: ${filter.value}`).join(" · ") : "الكل"}
         {" · "}
         تاريخ الطباعة: <span dir="ltr">{formatDateTime(job.printedAt)}</span>
-        {" · "}
-        عدد السجلات: <span dir="ltr">{job.rows.length}</span>
+        {!job.groups && (
+          <>
+            {" · "}
+            عدد السجلات: <span dir="ltr">{job.rows.length}</span>
+          </>
+        )}
       </p>
 
-      <table>
-        <thead>
-          <tr>
-            {job.columns.map((column) => (
-              <th key={column.header}>{column.header}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {job.rows.map((row) => (
-            <tr key={row.id}>
-              {job.columns.map((column) => (
-                <td key={column.header} style={column.multiline ? { whiteSpace: "pre-line" } : undefined}>
-                  {column.cell(row)}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {job.groups ? (
+        job.groups.map((group) => (
+          <section key={group.title}>
+            <h2>{group.title}</h2>
+            <PrintTable columns={job.columns} rows={group.rows} />
+          </section>
+        ))
+      ) : (
+        <PrintTable columns={job.columns} rows={job.rows} />
+      )}
 
       {job.total &&
         (Array.isArray(job.total) ? job.total : [job.total]).map((total) => (
@@ -108,6 +107,31 @@ export default function PrintView<T extends { id: string }>({ job, onDone }: Pri
         ))}
     </div>,
     document.body
+  );
+}
+
+function PrintTable<T extends { id: string }>({ columns, rows }: { columns: PrintColumn<T>[]; rows: T[] }) {
+  return (
+    <table>
+      <thead>
+        <tr>
+          {columns.map((column) => (
+            <th key={column.header}>{column.header}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row) => (
+          <tr key={row.id}>
+            {columns.map((column) => (
+              <td key={column.header} style={column.multiline ? { whiteSpace: "pre-line" } : undefined}>
+                {column.cell(row)}
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }
 
