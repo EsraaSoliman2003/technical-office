@@ -36,6 +36,14 @@ export function isStatementCounterStatus(option: { value: string; label: string 
   );
 }
 
+/** معلق (the first counter status; التمام اليومي leaves it out and shows كتيبة … مركزية). */
+export function isPendingStatementStatus(option: { value: string; label: string }) {
+  return (
+    option.value === STATEMENT_COUNTER_STATUSES.values[0] ||
+    option.label.trim() === STATEMENT_COUNTER_STATUSES.labels[0]
+  );
+}
+
 /** Name of a statement in aria-labels and confirmations: "مستخلص العقد 123 بقيمة 1,000.00". */
 export function statementLabel(item: Pick<StatementItem, "contractNumber" | "amount">) {
   return `مستخلص العقد ${item.contractNumber} بقيمة ${formatAmount(item.amount)}`;
