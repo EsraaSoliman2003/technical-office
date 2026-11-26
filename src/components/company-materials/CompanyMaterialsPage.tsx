@@ -1,7 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { skipToken } from "@reduxjs/toolkit/query";
+import { useCallback, useMemo, useState } from "react";
 import {
   AttachmentCountButton,
   LtrText,
@@ -11,12 +10,11 @@ import {
   totalQuantityLabel,
 } from "@/components/list/cells";
 import { auditColumns } from "@/components/list/columns";
+import ColumnValueFilter, { type ColumnFilterOption } from "@/components/list/ColumnValueFilter";
 import { useCanWrite } from "@/components/list/formHelpers";
 import ListPage, { ListSuspense } from "@/components/list/ListPage";
 import type { ListColumn } from "@/components/list/ListTable";
-import { OptionFilter } from "@/components/list/OptionFilter";
 import { useListState, type ListStateOptions } from "@/components/list/useListState";
-import { filterName, waitingForOptions } from "@/components/options/useOptionList";
 import { activeFilters, type PrintColumn } from "@/components/print/PrintView";
 import { usePrintExport } from "@/components/print/usePrintExport";
 import { formatQuantity } from "@/lib/numbers";
@@ -26,7 +24,7 @@ import {
   useRemoveCompanyMaterialMutation,
 } from "@/rtk/endpoints/companyMaterialApi";
 import { useAppDispatch } from "@/rtk/hooks";
-import type { CompanyMaterialFilters, CompanyMaterialItem, CompanyMaterialSortBy } from "@/types/companyMaterial";
+import type { CompanyMaterialItem, CompanyMaterialSortBy } from "@/types/companyMaterial";
 import CompanyMaterialAttachmentsDialog from "./CompanyMaterialAttachmentsDialog";
 import CompanyMaterialFormDialog from "./CompanyMaterialFormDialog";
 import { companyMaterialLabel } from "./labels";
@@ -60,13 +58,50 @@ const PRINT_COLUMNS: PrintColumn<CompanyMaterialItem>[] = [
 ];
 
 type DialogState = { mode: "create" } | { mode: "edit"; item: CompanyMaterialItem } | null;
+type LocalFilterKey =
+  | "projectId"
+  | "materialId"
+  | "companyId"
+  | "loadingPermitNumber"
+  | "receivingEngineer"
+  | "attachmentCount";
+type LocalFilters = Partial<Record<LocalFilterKey, string[]>>;
+
+function getLocalFilterValue(item: CompanyMaterialItem, key: LocalFilterKey) {
+  switch (key) {
+    case "projectId":
+      return item.projectId;
+    case "materialId":
+      return item.materialId;
+    case "companyId":
+      return item.companyId;
+    case "loadingPermitNumber":
+      return item.loadingPermitNumber || "—";
+    case "receivingEngineer":
+      return item.receivingEngineer || "—";
+    case "attachmentCount":
+      return item.attachmentCount > 0 ? String(item.attachmentCount) : "—";
+  }
+}
+
+function getOptionLabels(selected: string[] | undefined, options: ColumnFilterOption[]) {
+  const labels = (selected ?? []).map(
+    (value) => options.find((option) => option.value === value)?.label ?? value
+  );
+  return labels.length > 0 ? labels.join("، ") : undefined;
+}
+
+function getLocalFilterOptions(items: CompanyMaterialItem[], key: LocalFilterKey): ColumnFilterOption[] {
+  return Array.from(new Set(items.map((item) => getLocalFilterValue(item, key))))
+    .sort((a, b) => a.localeCompare(b, "ar"))
+    .map((value) => ({ value, label: value }));
+}
 
 function CompanyMaterialsPageContent() {
   const canWrite = useCanWrite();
   const dispatch = useAppDispatch();
   const { projects, materials, companies } = useOptionLists();
 
-  // Unknown ids in the URL are dropped once the option lists are loaded.
   const listOptions = useMemo<ListStateOptions<CompanyMaterialSortBy>>(
     () => ({
       pageSize: 20,
@@ -74,103 +109,188 @@ function CompanyMaterialsPageContent() {
       defaultSortBy: "createdAt",
       defaultSortDir: "desc",
       ascendingFirst: ["loadingPermitNumber", "projectName", "materialName", "companyName"],
-      filterValues: {
-        projectId: projects.ids,
-        materialId: materials.ids,
-        companyId: companies.ids,
-      },
     }),
-    [projects.ids, materials.ids, companies.ids]
+    []
   );
   const list = useListState(listOptions);
-  const filters: CompanyMaterialFilters = {
-    projectId: list.filters.projectId,
-    materialId: list.filters.materialId,
-    companyId: list.filters.companyId,
-  };
-  const waiting = waitingForOptions([
-    [filters.projectId, projects],
-    [filters.materialId, materials],
-    [filters.companyId, companies],
-  ]);
-  const listQuery = useListCompanyMaterialsQuery(waiting ? skipToken : { ...list.params, ...filters });
-  // Show the loading skeleton while waiting.
-  const query = { ...listQuery, isFetching: listQuery.isFetching || waiting };
+  const query = useListCompanyMaterialsQuery(list.params);
   const [removeRecord] = useRemoveCompanyMaterialMutation();
   const [dialog, setDialog] = useState<DialogState>(null);
   const [viewing, setViewing] = useState<CompanyMaterialItem | null>(null);
-
-  const columns = useMemo<ListColumn<CompanyMaterialItem, CompanyMaterialSortBy>[]>(
-    () => [
-      {
-        key: "loadingPermitNumber",
-        header: "رقم اذن التحميل",
-        sortKey: "loadingPermitNumber",
-        className: "whitespace-nowrap text-foreground",
-        cell: (item) => <LtrText value={item.loadingPermitNumber} />,
-      },
-      {
-        key: "projectName",
-        header: "اسم المشروع",
-        sortKey: "projectName",
-        className: "font-semibold text-foreground",
-        cell: (item) => item.projectName,
-      },
-      {
-        key: "materialName",
-        header: "الخامة",
-        sortKey: "materialName",
-        className: "whitespace-nowrap text-foreground",
-        cell: (item) => item.materialName,
-      },
-      {
-        key: "companyName",
-        header: "الشركة المنفذة",
-        sortKey: "companyName",
-        className: "text-foreground",
-        cell: (item) => item.companyName,
-      },
-      {
-        key: "quantity",
-        header: "الكمية",
-        sortKey: "quantity",
-        className: "whitespace-nowrap text-foreground",
-        cell: (item) => <QuantityText value={item.quantity} />,
-      },
-      {
-        key: "receivingEngineer",
-        header: "المهندس المستلم",
-        className: "text-muted-foreground",
-        cell: (item) => item.receivingEngineer || "—",
-      },
-      {
-        key: "notes",
-        header: "ملاحظات",
-        className: "text-muted-foreground",
-        cell: (item) => <NotesCell value={item.notes} />,
-      },
-      {
-        key: "attachments",
-        header: "البوليصة",
-        className: "py-2 whitespace-nowrap text-muted-foreground",
-        cell: (item) => (
-          <AttachmentCountButton
-            count={item.attachmentCount}
-            label={`عرض البوليصة: ${companyMaterialLabel(item)}`}
-            title="عرض البوليصة"
-            onClick={() => setViewing(item)}
-          />
-        ),
-      },
-      ...auditColumns<CompanyMaterialItem, CompanyMaterialSortBy>({
-        createdAt: "createdAt",
-        updatedAt: "updatedAt",
-      }),
-    ],
-    [setViewing]
+  const pageItems = query.currentData?.items ?? [];
+  const filterPageKey = `${list.page}:${list.search}:${list.sortBy}:${list.sortDir}`;
+  const [pageFilterState, setPageFilterState] = useState<{ key: string; filters: LocalFilters }>({
+    key: filterPageKey,
+    filters: {},
+  });
+  const localFilters: LocalFilters =
+    pageFilterState.key === filterPageKey ? pageFilterState.filters : {};
+  const updateLocalFilter = useCallback(
+    (key: LocalFilterKey, values: string[]) => {
+      setPageFilterState((current) => ({
+        key: filterPageKey,
+        filters: {
+          ...(current.key === filterPageKey ? current.filters : {}),
+          [key]: values,
+        },
+      }));
+    },
+    [filterPageKey]
+  );
+  const filteredItems = useMemo(
+    () =>
+      pageItems.filter((item) =>
+        (Object.keys(localFilters) as LocalFilterKey[]).every((key) => {
+          const selected = localFilters[key];
+          return !selected?.length || selected.includes(getLocalFilterValue(item, key));
+        })
+      ),
+    [localFilters, pageItems]
+  );
+  const hasLocalFilters = Object.values(localFilters).some((values) => values?.length);
+  const filteredQuery = useMemo(
+    () => ({
+      ...query,
+      currentData: query.currentData ? { ...query.currentData, items: filteredItems } : undefined,
+    }),
+    [filteredItems, query]
   );
 
-  const materialName = filterName(filters.materialId, materials, query.currentData?.items, (row) => row.materialName);
+  const columns = useMemo<ListColumn<CompanyMaterialItem, CompanyMaterialSortBy>[]>(
+    () => {
+      const filterControl = (
+        label: string,
+        options: ColumnFilterOption[],
+        selectedValues: string[],
+        onChange: (values: string[]) => void,
+        props?: { loading?: boolean; loadError?: boolean }
+      ) => (
+        <ColumnValueFilter
+          label={label}
+          options={options}
+          selectedValues={selectedValues}
+          onChange={onChange}
+          {...props}
+        />
+      );
+
+      return [
+        {
+          key: "loadingPermitNumber",
+          header: "رقم اذن التحميل",
+          headerControl: filterControl(
+            "رقم اذن التحميل",
+            getLocalFilterOptions(pageItems, "loadingPermitNumber"),
+            localFilters.loadingPermitNumber ?? [],
+            (values) => updateLocalFilter("loadingPermitNumber", values)
+          ),
+          sortKey: "loadingPermitNumber",
+          className: "whitespace-nowrap text-foreground",
+          cell: (item) => <LtrText value={item.loadingPermitNumber} />,
+        },
+        {
+          key: "projectName",
+          header: "اسم المشروع",
+          headerControl: filterControl(
+            "اسم المشروع",
+            projects.options,
+            localFilters.projectId ?? [],
+            (values) => updateLocalFilter("projectId", values),
+            { loading: projects.loading, loadError: projects.loadError }
+          ),
+          sortKey: "projectName",
+          className: "font-semibold text-foreground",
+          cell: (item) => item.projectName,
+        },
+        {
+          key: "materialName",
+          header: "الخامة",
+          headerControl: filterControl(
+            "الخامة",
+            materials.options,
+            localFilters.materialId ?? [],
+            (values) => updateLocalFilter("materialId", values),
+            { loading: materials.loading, loadError: materials.loadError }
+          ),
+          sortKey: "materialName",
+          className: "whitespace-nowrap text-foreground",
+          cell: (item) => item.materialName,
+        },
+        {
+          key: "companyName",
+          header: "الشركة المنفذة",
+          headerControl: filterControl(
+            "الشركة المنفذة",
+            companies.options,
+            localFilters.companyId ?? [],
+            (values) => updateLocalFilter("companyId", values),
+            { loading: companies.loading, loadError: companies.loadError }
+          ),
+          sortKey: "companyName",
+          className: "text-foreground",
+          cell: (item) => item.companyName,
+        },
+        {
+          key: "quantity",
+          header: "الكمية",
+          sortKey: "quantity",
+          className: "whitespace-nowrap text-foreground",
+          cell: (item) => <QuantityText value={item.quantity} />,
+        },
+        {
+          key: "receivingEngineer",
+          header: "المهندس المستلم",
+          headerControl: filterControl(
+            "المهندس المستلم",
+            getLocalFilterOptions(pageItems, "receivingEngineer"),
+            localFilters.receivingEngineer ?? [],
+            (values) => updateLocalFilter("receivingEngineer", values)
+          ),
+          className: "text-muted-foreground",
+          cell: (item) => item.receivingEngineer || "—",
+        },
+        {
+          key: "notes",
+          header: "ملاحظات",
+          className: "text-muted-foreground",
+          cell: (item) => <NotesCell value={item.notes} />,
+        },
+        {
+          key: "attachments",
+          header: "البوليصة",
+          headerControl: filterControl(
+            "البوليصة",
+            getLocalFilterOptions(pageItems, "attachmentCount"),
+            localFilters.attachmentCount ?? [],
+            (values) => updateLocalFilter("attachmentCount", values)
+          ),
+          className: "py-1.5 whitespace-nowrap text-muted-foreground",
+          cell: (item) => (
+            <AttachmentCountButton
+              count={item.attachmentCount}
+              label={`عرض البوليصة: ${companyMaterialLabel(item)}`}
+              title="عرض البوليصة"
+              onClick={() => setViewing(item)}
+            />
+          ),
+        },
+        ...auditColumns<CompanyMaterialItem, CompanyMaterialSortBy>({
+          createdAt: "createdAt",
+          updatedAt: "updatedAt",
+        }),
+      ];
+    },
+    [
+      companies,
+      localFilters,
+      materials,
+      pageItems,
+      projects,
+      updateLocalFilter,
+    ]
+  );
+
+  const materialName = getOptionLabels(localFilters.materialId, materials.options);
 
   // ---- طباعة / PDF: all rows for the current filters and sort → print view ----
   const printer = usePrintExport<CompanyMaterialItem>();
@@ -184,26 +304,25 @@ function CompanyMaterialsPageContent() {
               search: list.params.search,
               sortBy: list.sortBy,
               sortDir: list.sortDir,
-              ...filters,
             },
             { subscribe: false, forceRefetch: true }
           )
         ),
       (rows, printedAt) => {
-        const printMaterialName = filterName(filters.materialId, materials, rows, (row) => row.materialName);
+        const printRows = hasLocalFilters ? filteredItems : rows;
         return {
           title: "خامات الشركات",
           filters: activeFilters([
-            ["المشروع", filterName(filters.projectId, projects, rows, (row) => row.projectName)],
-            ["الخامة", printMaterialName],
-            ["الشركة المنفذة", filterName(filters.companyId, companies, rows, (row) => row.companyName)],
+            ["المشروع", getOptionLabels(localFilters.projectId, projects.options)],
+            ["الخامة", materialName],
+            ["الشركة المنفذة", getOptionLabels(localFilters.companyId, companies.options)],
             ["البحث", list.search ? `"${list.search}"` : undefined],
           ]),
           columns: PRINT_COLUMNS,
-          rows,
+          rows: printRows,
           total: {
-            label: totalQuantityLabel(printMaterialName),
-            value: formatQuantity(rows.reduce((sum, row) => sum + row.quantity, 0)),
+            label: totalQuantityLabel(materialName),
+            value: formatQuantity(printRows.reduce((sum, row) => sum + row.quantity, 0)),
           },
           printedAt,
         };
@@ -214,7 +333,7 @@ function CompanyMaterialsPageContent() {
     <ListPage
       title="خامات الشركات"
       list={list}
-      query={query}
+      query={filteredQuery}
       columns={columns}
       itemLabel={companyMaterialLabel}
       minWidthClassName="min-w-[1700px]"
@@ -224,41 +343,50 @@ function CompanyMaterialsPageContent() {
       onDelete={(item) => removeRecord(item.id)}
       searchPlaceholder="بحث شامل"
       headerActions={printer.button(print)}
-      toolbar={
+      hasLocalFilters={hasLocalFilters}
+      summary={
         <>
-          <OptionFilter
-            label="اسم المشروع"
-            allLabel="كل المشاريع"
-            list={projects}
-            value={filters.projectId}
-            onChange={(value) => list.setFilter("projectId", value)}
-          />
-          <OptionFilter
-            label="الخامة"
-            allLabel="كل الخامات"
-            list={materials}
-            value={filters.materialId}
-            onChange={(value) => list.setFilter("materialId", value)}
-          />
-          <OptionFilter
-            label="الشركة المنفذة"
-            allLabel="كل الشركات"
-            list={companies}
-            value={filters.companyId}
-            onChange={(value) => list.setFilter("companyId", value)}
+          {hasLocalFilters && (
+            <span className="text-sm text-muted-foreground">
+              المعروض في الصفحة: {filteredItems.length} من {pageItems.length}
+            </span>
+          )}
+          <TotalQuantity
+            value={
+              hasLocalFilters
+                ? filteredItems.reduce((sum, item) => sum + item.quantity, 0)
+                : query.currentData?.totalQuantity
+            }
+            materialName={materialName}
           />
         </>
       }
-      summary={<TotalQuantity value={query.currentData?.totalQuantity} materialName={materialName} />}
     >
       {dialog && (
         <CompanyMaterialFormDialog
           key={dialog.mode === "edit" ? dialog.item.id : "create"}
           item={dialog.mode === "edit" ? dialog.item : undefined}
-          prefill={dialog.mode === "create" ? filters : undefined}
+          prefill={
+            dialog.mode === "create"
+              ? {
+                  projectId: localFilters.projectId?.length === 1 ? localFilters.projectId[0] : undefined,
+                  materialId: localFilters.materialId?.length === 1 ? localFilters.materialId[0] : undefined,
+                  companyId: localFilters.companyId?.length === 1 ? localFilters.companyId[0] : undefined,
+                }
+              : undefined
+          }
           onClose={() => setDialog(null)}
-          // The new row matches the pre-filled filters, so they stay.
-          onCreated={() => list.showNewest({ keepFilters: ["projectId", "materialId", "companyId"] })}
+          onCreated={() => {
+            setPageFilterState({
+              key: filterPageKey,
+              filters: {
+                projectId: localFilters.projectId?.length === 1 ? localFilters.projectId : [],
+                materialId: localFilters.materialId?.length === 1 ? localFilters.materialId : [],
+                companyId: localFilters.companyId?.length === 1 ? localFilters.companyId : [],
+              },
+            });
+            list.showNewest();
+          }}
         />
       )}
       {viewing && (

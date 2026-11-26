@@ -56,6 +56,10 @@ type ListPageProps<T extends { id: string }, TSortBy extends string> = {
   onDelete?: (item: T) => PromiseLike<{ error?: unknown }>;
   /** Extra controls next to the search box (e.g. a status filter). */
   toolbar?: ReactNode;
+  /** There are active client-side column filters, so an empty result is a filtered empty state. */
+  hasLocalFilters?: boolean;
+  /** Hide the standalone search box when search is provided in a column header. */
+  showSearch?: boolean;
   /** Search box placeholder (default "بحث..."). */
   searchPlaceholder?: string;
   /** Extra buttons next to "إضافة" (e.g. print). */
@@ -86,6 +90,8 @@ export default function ListPage<T extends { id: string }, TSortBy extends strin
   onEdit,
   onDelete,
   toolbar,
+  hasLocalFilters = false,
+  showSearch = true,
   searchPlaceholder = "بحث...",
   headerActions,
   summary,
@@ -173,7 +179,7 @@ export default function ListPage<T extends { id: string }, TSortBy extends strin
       />
     );
   } else if (!showSkeleton && items.length === 0) {
-    const filtered = list.search !== "" || Object.values(list.filters).some(Boolean);
+    const filtered = hasLocalFilters || list.search !== "" || Object.values(list.filters).some(Boolean);
     body = filtered ? (
       <EmptyState icon={SearchX} title="لا توجد نتائج للبحث" />
     ) : (
@@ -224,41 +230,45 @@ export default function ListPage<T extends { id: string }, TSortBy extends strin
         className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm"
       >
         {topBar && <div className="border-b border-border px-4 py-3">{topBar}</div>}
-        <div className="flex flex-wrap items-center gap-3 border-b border-border p-4">
-          <div className="relative w-full max-w-md">
-            <Search
-              size={18}
-              aria-hidden="true"
-              className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground"
-            />
-            <Input
-              type="search"
-              aria-label={`بحث في ${title}`}
-              placeholder={searchPlaceholder}
-              value={list.searchText}
-              onChange={(event) => list.setSearchText(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Escape" && list.searchText) {
-                  event.preventDefault();
-                  list.clearSearch();
-                }
-              }}
-              className="ps-10 pe-10 [&::-webkit-search-cancel-button]:hidden"
-            />
-            {list.searchText && (
-              <button
-                type="button"
-                onClick={list.clearSearch}
-                aria-label="مسح البحث"
-                title="مسح البحث"
-                className="absolute top-1/2 left-2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground hover:bg-surface-muted hover:text-foreground"
-              >
-                <X size={16} aria-hidden="true" />
-              </button>
+        {(showSearch || toolbar) && (
+          <div className="flex flex-wrap items-center gap-3 border-b border-border p-4">
+            {showSearch && (
+              <div className="relative w-full max-w-md">
+                <Search
+                  size={18}
+                  aria-hidden="true"
+                  className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground"
+                />
+                <Input
+                  type="search"
+                  aria-label={`بحث في ${title}`}
+                  placeholder={searchPlaceholder}
+                  value={list.searchText}
+                  onChange={(event) => list.setSearchText(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Escape" && list.searchText) {
+                      event.preventDefault();
+                      list.clearSearch();
+                    }
+                  }}
+                  className="ps-10 pe-10 [&::-webkit-search-cancel-button]:hidden"
+                />
+                {list.searchText && (
+                  <button
+                    type="button"
+                    onClick={list.clearSearch}
+                    aria-label="مسح البحث"
+                    title="مسح البحث"
+                    className="absolute top-1/2 left-2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground hover:bg-surface-muted hover:text-foreground"
+                  >
+                    <X size={16} aria-hidden="true" />
+                  </button>
+                )}
+              </div>
             )}
+            {toolbar}
           </div>
-          {toolbar}
-        </div>
+        )}
 
         {body}
 
