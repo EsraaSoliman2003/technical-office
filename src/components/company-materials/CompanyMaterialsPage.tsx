@@ -338,10 +338,10 @@ function CompanyMaterialsPageContent() {
       itemLabel={companyMaterialLabel}
       minWidthClassName="min-w-[1700px]"
       canWrite={canWrite}
+      showSearch={false}
       onAdd={() => setDialog({ mode: "create" })}
       onEdit={(item) => setDialog({ mode: "edit", item })}
       onDelete={(item) => removeRecord(item.id)}
-      searchPlaceholder="بحث شامل"
       headerActions={printer.button(print)}
       hasLocalFilters={hasLocalFilters}
       summary={

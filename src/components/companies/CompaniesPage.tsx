@@ -162,6 +162,7 @@ function CompaniesPageContent() {
       itemLabel={(item) => item.name}
       minWidthClassName="min-w-[1080px]"
       canWrite={canWrite}
+      showSearch={false}
       onAdd={() => setDialog({ mode: "create" })}
       onEdit={(item) => setDialog({ mode: "edit", item })}
       onDelete={(item) => removeCompany(item.id)}
@@ -189,7 +190,7 @@ function CompaniesPageContent() {
   );
 }
 
-/** الشركات (/data/companies): list, search, sort, paginate, add/edit/delete, attachments. */
+/** الشركات (/data/companies): list, sort, paginate, add/edit/delete, attachments. */
 export default function CompaniesPage() {
   return (
     <ListSuspense>
